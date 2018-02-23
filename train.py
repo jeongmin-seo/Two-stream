@@ -40,7 +40,7 @@ set_session(sess)
 ########################################
 def stream_conv():
 
-    img_shape = Input(shape=(448, 448, 1))  # TODO: modify data size (ref Two-stream conv paper)
+    img_shape = Input(shape=(224, 224, 57))  # TODO: modify data size (ref Two-stream conv paper)
     model = Sequential()
 
     # conv1 layer
@@ -107,3 +107,9 @@ def stream_conv():
     network.summary()
     """
     return model
+
+
+if __name__=='__main__':
+
+    spatial_stream = stream_conv()
+    temporal_stream = stream_conv()
