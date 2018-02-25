@@ -22,6 +22,7 @@ class DataLoader():
         if _shuffle:
             random.shuffle(self._data_list)
 
+
     @staticmethod
     def data_dir_reader(_txt_path):
 
@@ -43,7 +44,6 @@ class DataLoader():
             label_name = int(video_name.split(' ')[-1]) - 1
             video_name = video_name.split(' ')[0]
             video_name = video_name.split('.')[0]
-            tmp_name = video_name.split('/')[0]    # TODO: Delete this code
             video_name = video_name.split('/')[-1]
 
 
@@ -57,9 +57,6 @@ class DataLoader():
             li.append(label_name)
             onehot_label = to_categorical(label_name, num_classes=101)
             label.append(onehot_label)
-
-            if tmp_name == 'HandstandPushups':
-                print(onehot_label)
             # TODO: make label using video_name
 
         self._front_idx += self._batch_size
@@ -73,6 +70,12 @@ class DataLoader():
             self._front_idx = 0
             self._end_idx = self._batch_size
 
+        if not data:
+            print("Data is empty!!")
+
+        if not label:
+            print('Label is empty!!')
+
         return np.asarray(data), np.asarray(label), end_of_file
 
     @staticmethod
@@ -82,10 +85,14 @@ class DataLoader():
         for file in _file_list:
             file_path = _file_root + file
             img = cv2.imread(file_path,cv2.IMREAD_COLOR)
-            img = np.resize(img,(224,224,3))
+            if img is None:
+                print(file_path)
+            img = cv2.resize(img,(224,224) )
 
             if result is not None:
-                result = np.concatenate((result, img), axis=2)
+                # result = np.concatenate((result, img), axis=2)
+                result = np.dstack((result, img))
+                del img
                 continue
 
             result = img
@@ -93,13 +100,12 @@ class DataLoader():
 
         return result
 
-    """
     def shuffle(self):
 
         if not self._data_list:
             print('Data list is None')
         random.shuffle(self._data_list)
-    """
+
 
 if __name__=='__main__':
     root = '/home/jm/Two-stream_data/jpegs_256/'

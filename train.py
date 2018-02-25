@@ -24,6 +24,11 @@ from keras.utils.vis_utils import model_to_dot
 import random
 import matplotlib.pyplot as plt
 
+# custom module
+import data_loader
+
+# time stamp
+import timeit
 
 # set the quantity of GPU memory consumed
 import tensorflow as tf
@@ -40,11 +45,11 @@ set_session(sess)
 ########################################
 def stream_conv():
 
-    img_shape = Input(shape=(224, 224, 57))  # TODO: modify data size (ref Two-stream conv paper)
+    # img_shape = Input(shape=(224, 224, 57))  # TODO: modify data size (ref Two-stream conv paper)
     model = Sequential()
 
     # conv1 layer
-    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=img_shape))
+    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=(224, 224, 57)))
     model.add(BatchNormalization())
     model.add(MaxPooling2D((2,2), padding='same'))
     """
@@ -98,7 +103,8 @@ def stream_conv():
     """
 
     # softamx layer
-    model.add(Activation('softmax'))
+    model.add(Dense(101, activation='softmax'))
+    # model.add(Activation('softmax'))
     # x = softmax()(x)
 
     model.summary()
@@ -111,5 +117,58 @@ def stream_conv():
 
 if __name__=='__main__':
 
+    #####################################################
+    #     import requirement data using data loader     #
+    #####################################################
+    root = '/home/jm/Two-stream_data/jpegs_256/'
+    txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
+    loader = data_loader.DataLoader(root, batch_size=640)
+    loader.set_data_list(txt_root)
+    print('complete setting data list')
+
+    #####################################################
+    #     set convolution neural network structure      #
+    #####################################################
+    print('set network')
     spatial_stream = stream_conv()
-    temporal_stream = stream_conv()
+    # temporal_stream = stream_conv()
+    print('complete')
+
+    spatial_opti = keras.optimizers.Adam(lr=1e-2, beta_1=0.99,
+                                     beta_2=0.99, epsilon=1e-08, decay=1e-4)
+
+    spatial_stream.compile(optimizer=spatial_opti,  # 'Adam',
+                        loss='categorical_crossentropy',
+                        metrics=['accuracy'])
+    print('complete network setting')
+
+
+    for epoch in range(1,101):
+        start = timeit.default_timer()
+
+        print('%d epoch train start' % epoch)
+        loader.shuffle()    # shuffle data set
+        while 1:
+            x, y, eof = loader.next_batch()
+            print(x.shape)
+            spatial_stream.fit(x, y, verbose=1)
+
+            del x, y
+            if eof:
+                break
+
+        stop = timeit.default_timer()
+        print(stop-start)
+
+        print('=' * 50)
+        print('%d epoch end' % epoch)
+
+    print('*'*50)
+    print('complete train')
+
+    model_json = spatial_stream.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+    spatial_stream.save_weights("model.h5")
+    print("Saved model to disk")
+
