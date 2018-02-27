@@ -25,7 +25,7 @@ import random
 import matplotlib.pyplot as plt
 
 # custom module
-import data_loader
+import ucf101
 
 # time stamp
 import timeit
@@ -122,7 +122,7 @@ if __name__=='__main__':
     #####################################################
     root = '/home/jm/Two-stream_data/jpegs_256/'
     txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
-    loader = data_loader.DataLoader(root, batch_size=640)
+    loader = ucf101.DataLoader(root, batch_size=640)
     loader.set_data_list(txt_root)
     print('complete setting data list')
 
@@ -151,7 +151,7 @@ if __name__=='__main__':
         while 1:
             x, y, eof = loader.next_batch()
             print(x.shape)
-            spatial_stream.fit(x, y, verbose=1)
+            spatial_stream.fit(x, y, verbose=1,shuffle=False)
 
             del x, y
             if eof:
@@ -169,7 +169,7 @@ if __name__=='__main__':
     model_json = spatial_stream.to_json()
     with open("model.json", "w") as json_file:
         json_file.write(model_json)
-    spatial_stream.save_weights("model.h5")
+    spatial_stream.save_weights("hmdb_spatial_model.h5")
     print("Saved model to disk")
 
 

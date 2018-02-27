@@ -108,6 +108,8 @@ class DataLoader():
 
 
 if __name__=='__main__':
+    """
+    # UCF-101 data loader
     root = '/home/jm/Two-stream_data/jpegs_256/'
     txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
 
@@ -128,6 +130,8 @@ if __name__=='__main__':
 
     a = list(set(li))
     print(a)
+    """
+
 
 
 
