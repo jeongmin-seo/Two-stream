@@ -8,7 +8,7 @@ import cv2
 
 from keras.utils import to_categorical
 li = []
-class DataLoader():
+class Spatial():
     def __init__(self, root_dir, batch_size):
         self._data_list = None
         self._root_dir = root_dir
@@ -29,6 +29,7 @@ class DataLoader():
         tmp = []
         f = open(_txt_path, 'r')
         for dir_name in f.readlines():
+            dir_name = dir_name.replace('\n', '')
             tmp.append(dir_name)
 
         return tmp
@@ -39,15 +40,16 @@ class DataLoader():
         label = []
         end_of_file = False
 
-        for video_name in self._data_list[self._front_idx: self._end_idx]:
-            video_name = video_name.replace('\n', '')
-            label_name = int(video_name.split(' ')[-1]) - 1
-            video_name = video_name.split(' ')[0]
-            video_name = video_name.split('.')[0]
-            video_name = video_name.split('/')[-1]
+        print(self._data_list[self._front_idx: self._end_idx])
+        for data_list in self._data_list[self._front_idx: self._end_idx]:
+            video_name = data_list.split(' ')[0]
 
+            print(data_list)
+            print(data_list.split(' ')[-1])
+            print('--')
+            label_name = int(data_list.split(' ')[-1])
 
-            file_root = self._root_dir + video_name + '/'
+            file_root = self._root_dir + '/' + video_name + '/'
             file_list = os.listdir(file_root)
             random.shuffle(file_list)
             file_list = file_list[0:19]         # TODO: 19 must be modified variable params
@@ -55,7 +57,7 @@ class DataLoader():
 
             data.append(self.make_input_shape(file_list, file_root))
             li.append(label_name)
-            onehot_label = to_categorical(label_name, num_classes=101)
+            onehot_label = to_categorical(label_name, num_classes=51)
             label.append(onehot_label)
             # TODO: make label using video_name
 
@@ -97,7 +99,6 @@ class DataLoader():
 
             result = img
 
-
         return result
 
     def shuffle(self):
@@ -106,16 +107,20 @@ class DataLoader():
             print('Data list is None')
         random.shuffle(self._data_list)
 
+class Temporal(Spatial):
+    pass
+
+
+# TODO: delete resize code
 
 if __name__=='__main__':
-    """
-    # UCF-101 data loader
-    root = '/home/jm/Two-stream_data/jpegs_256/'
-    txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
 
-    loader = DataLoader(root, batch_size=300)
+    # HMDB-51 data loader
+    root = '/home/jm/Two-stream_data/HMDB51/frames'
+    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
+
+    loader = Spatial(root, batch_size=300)
     loader.set_data_list(txt_root)
-
 
     n = 0
     for epoch in range(5):
@@ -130,7 +135,8 @@ if __name__=='__main__':
 
     a = list(set(li))
     print(a)
-    """
+
+
 
 
 

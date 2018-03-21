@@ -8,7 +8,7 @@ import cv2
 
 from keras.utils import to_categorical
 li = []
-class DataLoader():
+class Spatial():
     def __init__(self, root_dir, batch_size):
         self._data_list = None
         self._root_dir = root_dir
@@ -107,13 +107,17 @@ class DataLoader():
         random.shuffle(self._data_list)
 
 
+class Temporal(Spatial):
+    pass
+
+
 if __name__=='__main__':
-    """
+
     # UCF-101 data loader
     root = '/home/jm/Two-stream_data/jpegs_256/'
     txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
 
-    loader = DataLoader(root, batch_size=300)
+    loader = Spatial(root, batch_size=300)
     loader.set_data_list(txt_root)
 
 
@@ -130,7 +134,7 @@ if __name__=='__main__':
 
     a = list(set(li))
     print(a)
-    """
+
 
 
 

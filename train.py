@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 
 # custom module
 import ucf101
+import hmdb51
 
 # time stamp
 import timeit
@@ -103,7 +104,8 @@ def stream_conv():
     """
 
     # softamx layer
-    model.add(Dense(101, activation='softmax'))
+    # model.add(Dense(101, activation='softmax'))  # ucf- 101
+    model.add(Dense(51, activation='softmax'))
     # model.add(Activation('softmax'))
     # x = softmax()(x)
 
@@ -120,10 +122,20 @@ if __name__=='__main__':
     #####################################################
     #     import requirement data using data loader     #
     #####################################################
+    """
+    # UCF-101 data load
     root = '/home/jm/Two-stream_data/jpegs_256/'
     txt_root = '/home/jm/Two-stream_data/trainlist01.txt'
-    loader = ucf101.DataLoader(root, batch_size=640)
+    loader = ucf101.Spatial(root, batch_size=640)
     loader.set_data_list(txt_root)
+    """
+    # HMDB-51 data loader
+    root = '/home/jm/Two-stream_data/HMDB51/frames'
+    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
+
+    loader = hmdb51.Spatial(root, batch_size=640)
+    loader.set_data_list(txt_root)
+
     print('complete setting data list')
 
     #####################################################
@@ -143,7 +155,7 @@ if __name__=='__main__':
     print('complete network setting')
 
 
-    for epoch in range(1,101):
+    for epoch in range(1,50000):
         start = timeit.default_timer()
 
         print('%d epoch train start' % epoch)
@@ -151,7 +163,7 @@ if __name__=='__main__':
         while 1:
             x, y, eof = loader.next_batch()
             print(x.shape)
-            spatial_stream.fit(x, y, verbose=1,shuffle=False)
+            spatial_stream.fit(x, y, verbose=1)
 
             del x, y
             if eof:
