@@ -4,7 +4,8 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture('slow.flv')
+video_path = '/home/jm/Two-stream_data/HMDB51/original/cartwheel/Acrobacias_de_un_fenomeno_cartwheel_f_cm_np1_fr_bad_3.avi'
+cap = cv2.VideoCapture(video_path)
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = 100,
@@ -22,6 +23,7 @@ color = np.random.randint(0,255,(100,3))
 
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
+print(old_frame.shape)
 old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
 p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
@@ -35,6 +37,9 @@ while(1):
     # calculate optical flow
     p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
 
+
+
+    cv2.calcOpticalFlowPyrLK(old_gray,frame_gray,)
     # Select good points
     good_new = p1[st==1]
     good_old = p0[st==1]
@@ -47,7 +52,7 @@ while(1):
         frame = cv2.circle(frame,(a,b),5,color[i].tolist(),-1)
     img = cv2.add(frame,mask)
 
-    cv2.imshow('frame',img)
+    cv2.imshow('frame',mask)
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break

@@ -9,11 +9,14 @@ from keras.layers.convolutional import MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Merge, Input
 from keras.layers.core import Dropout
+from keras.preprocessing.image import ImageDataGenerator
 from keras.backend import set_session
 from keras.models import Model
 from keras.activations import softmax
 
 from keras.models import model_from_json
+from keras.models import load_model
+from keras.models import save_model
 from keras.utils import np_utils
 import scipy.io as sio
 import numpy as np
@@ -39,6 +42,8 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 set_session(sess)
 
+# using pretrained model
+using_pretrained_model = False
 
 
 ########################################
@@ -50,7 +55,7 @@ def stream_conv():
     model = Sequential()
 
     # conv1 layer
-    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=(224, 224, 57)))
+    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=(224, 224, 3)))
     model.add(BatchNormalization())
     model.add(MaxPooling2D((2,2), padding='same'))
     """
@@ -130,10 +135,10 @@ if __name__=='__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/frames'
+    root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
 
-    loader = hmdb51.Spatial(root, batch_size=640)
+    loader = hmdb51.Spatial(root)
     loader.set_data_list(txt_root)
 
     print('complete setting data list')
@@ -143,6 +148,12 @@ if __name__=='__main__':
     #####################################################
     print('set network')
     spatial_stream = stream_conv()
+    if using_pretrained_model:
+        # spatial_stream = load_model("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
+        spatial_stream.load_weights("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
+        print("weight loaded")
+
+    # spatial_stream = stream_conv()
     # temporal_stream = stream_conv()
     print('complete')
 
@@ -154,10 +165,38 @@ if __name__=='__main__':
                         metrics=['accuracy'])
     print('complete network setting')
 
+    x,y = loader.load_all_data()
+    print(x.shape)
 
+    #TODO:modify parameters
+    datagen = ImageDataGenerator(
+        featurewise_center=True,
+        featurewise_std_normalization=True,
+        rotation_range=20,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        horizontal_flip=True)
+
+    datagen.fit(x)
+    gen = datagen.flow(x, y, batch_size=128)
+    #spatial_stream.fit_generator(datagen.flow(x, y, batch_size=1), epochs=50000)
+    # spatial_stream.fit(x, y, verbose=1, batch_size=64, epochs=50000)
+
+    for e in range(50000):
+        print('Epoch', e)
+        batches = 0
+        for x_batch, y_batch in gen:
+            spatial_stream.fit(x_batch, y_batch)
+            batches += 1
+            if batches >= len(x) / 128:
+                # we need to break the loop by hand because
+                # the generator loops indefinitely
+                break
+    """
     for epoch in range(1,50000):
         start = timeit.default_timer()
-
+        
+        
         print('%d epoch train start' % epoch)
         loader.shuffle()    # shuffle data set
         while 1:
@@ -168,20 +207,21 @@ if __name__=='__main__':
             del x, y
             if eof:
                 break
-
+        
         stop = timeit.default_timer()
         print(stop-start)
 
         print('=' * 50)
         print('%d epoch end' % epoch)
-
+    
     print('*'*50)
     print('complete train')
-
+    """
     model_json = spatial_stream.to_json()
     with open("model.json", "w") as json_file:
         json_file.write(model_json)
-    spatial_stream.save_weights("hmdb_spatial_model.h5")
+    spatial_stream.save_weights("hmdb_spatial_model_weights.h5")
+    spatial_stream.save("hmdb_spatial_model.h5")
     print("Saved model to disk")
 
 

@@ -100,7 +100,7 @@ class MakePreprocessData():
         img_name = _frame_path + '/' + _frame_name
 
         img = cv2.imread(img_name)
-        resized_img = cv2.resize(img, (244, 244))   # (224, 224, 3) is image size in paper
+        resized_img = cv2.resize(img, (224, 224))   # (224, 224, 3) is image size in paper
         normalized_img = resized_img/255    # 255 is max pixel value relate normalize
 
         return normalized_img.astype(np.uint8)
@@ -123,6 +123,8 @@ class MakePreprocessData():
                 result_frame = self.make_spatial_data(frame_path, frame_name)
                 result_flow = self.make_temporal_data(flow_path, flow_x_list, flow_y_list)
                 result_label = self.make_label(action)
+
+                #save_action = action.replace('_', ' ')
 
                 save_name = "%s_%05d" %(action, int(video_number))
 
