@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.layers import Flatten
 from keras.layers.convolutional import Conv2D
-from keras.layers.convolutional import MaxPooling2D
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Merge, Input
 from keras.layers.core import Dropout
@@ -13,6 +13,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.backend import set_session
 from keras.models import Model
 from keras.activations import softmax
+from keras.applications.vgg16 import VGG16
 
 from keras.models import model_from_json
 from keras.models import load_model
@@ -147,20 +148,49 @@ if __name__=='__main__':
     #     set convolution neural network structure      #
     #####################################################
     print('set network')
+    """
     spatial_stream = stream_conv()
     if using_pretrained_model:
         # spatial_stream = load_model("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
         spatial_stream.load_weights("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
         print("weight loaded")
+    """
+    #weight_path = "/home/jm/workspace/Two-stream/pre-trained_model/model/vgg16_weights.h5"
+    vgg16 = VGG16(weights='imagenet', include_top=False, input_shape=(224,224,3))
+    #vgg16.layers.pop()
+    for layer in vgg16.layers[:14]:
+        layer.trainable = False
 
+    vgg16.summary()
+
+    img_input = Input(shape=(224,224,3))
+    x = vgg16(img_input)
+    x = Flatten(name='flatten')(x)
+    x = Dense(250, activation='relu')(x)
+    x = Dropout(0.5)(x)
+
+    x = Dense(51, activation='softmax')(x)
+
+    spatial_stream = Model(input=img_input, outputs=x)
+    spatial_stream.summary()
+
+
+
+    """
+    spatial_stream.add(Dense(1024, activation='relu'))
+    spatial_stream.add(Dropout(0.5))
+    spatial_stream.add(Dense(256, activation='relu'))
+    spatial_stream.add(Dropout(0.5))
+    spatial_stream.add(Dense(51, activation='softmax'))
+    """
     # spatial_stream = stream_conv()
     # temporal_stream = stream_conv()
     print('complete')
+    sgd = keras.optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
+    #spatial_opti = keras.optimizers.Adam(lr=1e-1, beta_1=0.99,
+    #                                 beta_2=0.99, epsilon=1e-08, decay=1e-4)
 
-    spatial_opti = keras.optimizers.Adam(lr=1e-2, beta_1=0.99,
-                                     beta_2=0.99, epsilon=1e-08, decay=1e-4)
-
-    spatial_stream.compile(optimizer=spatial_opti,  # 'Adam',
+    spatial_stream.compile(optimizer=sgd,  # 'Adam',
                         loss='categorical_crossentropy',
                         metrics=['accuracy'])
     print('complete network setting')
@@ -192,6 +222,23 @@ if __name__=='__main__':
                 # we need to break the loop by hand because
                 # the generator loops indefinitely
                 break
+
+        if e%100 == 0:
+
+            if e == 0:
+                continue
+
+            model_json = spatial_stream.to_json()
+            json_model_name = "%d_epoch_model.json" %e
+            with open(json_model_name, "w") as json_file:
+                json_file.write(model_json)
+
+            weight_name = "%d_epoch_weight.h5" %e
+            model_name = "%d_epoch_model.h5" %e
+            spatial_stream.save_weights(weight_name)
+            spatial_stream.save(model_name)
+            print("Saved model to disk")
+
     """
     for epoch in range(1,50000):
         start = timeit.default_timer()
@@ -217,11 +264,6 @@ if __name__=='__main__':
     print('*'*50)
     print('complete train')
     """
-    model_json = spatial_stream.to_json()
-    with open("model.json", "w") as json_file:
-        json_file.write(model_json)
-    spatial_stream.save_weights("hmdb_spatial_model_weights.h5")
-    spatial_stream.save("hmdb_spatial_model.h5")
-    print("Saved model to disk")
+
 
 
