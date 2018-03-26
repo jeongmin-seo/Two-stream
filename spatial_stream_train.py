@@ -123,7 +123,7 @@ def stream_conv():
     return model
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     #####################################################
     #     import requirement data using data loader     #
