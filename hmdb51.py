@@ -8,6 +8,8 @@ import cv2
 
 from keras.utils import to_categorical
 li = []
+
+
 class Spatial():
     def __init__(self, root_dir, batch_size=None):
         self._data_list = None
@@ -21,7 +23,6 @@ class Spatial():
 
         if _shuffle:
             random.shuffle(self._data_list)
-
 
     @staticmethod
     def data_dir_reader(_txt_path):
@@ -50,7 +51,6 @@ class Spatial():
             load_file_name = "%s_%05d_frame.npy" % (video_name, video_number)
             file_root = self._root_dir + '/' + load_file_name
 
-
             try:
                 dat = np.load(file_root)
 
@@ -67,7 +67,6 @@ class Spatial():
                 onehot_label = to_categorical(label_name, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
-
 
         if not data:
             print("Data is empty!!")
@@ -93,7 +92,6 @@ class Spatial():
             print(data_list.split(' ')[-1])
             print('--')
 
-
             load_file_name = "%s_%05d_frame.npy" %(video_name, video_number)
             file_root = self._root_dir + '/' + load_file_name
 
@@ -108,12 +106,8 @@ class Spatial():
                 label.append(onehot_label)
                 # TODO: make label using video_name
 
-
             except FileNotFoundError:
                 continue
-
-
-
 
         self._front_idx += self._batch_size
         self._end_idx += self._batch_size
@@ -133,39 +127,57 @@ class Spatial():
             print('Label is empty!!')
 
         return np.asarray(data), np.asarray(label), end_of_file
-    """
-    @staticmethod
-    def make_input_shape(_file_list, _file_root):
 
-        result = None
-        for file in _file_list:
-            file_path = _file_root + file
-            img = cv2.imread(file_path,cv2.IMREAD_COLOR)
-            if img is None:
-                print(file_path)
-            img = cv2.resize(img,(224,224) )
-
-            if result is not None:
-                # result = np.concatenate((result, img), axis=2)
-                result = np.dstack((result, img))
-                del img
-                continue
-
-            result = img
-
-        return result
-    """
     def shuffle(self):
 
         if not self._data_list:
             print('Data list is None')
         random.shuffle(self._data_list)
 
+
 class Temporal(Spatial):
-    pass
 
+    def load_all_data(self):
+        data = []
+        label = []
 
-# TODO: delete resize code
+        for data_list in self._data_list:
+            video_tag = data_list.split(' ')[0]
+            video_name = video_tag.split('/')[0]
+            video_number = int(video_tag.split('/')[1])
+            """
+            print(data_list)
+            print(data_list.split(' ')[-1])
+            print('--')
+            """
+            load_file_name = "%s_%05d_flow.npy" % (video_name, video_number)
+            file_root = self._root_dir + '/' + load_file_name
+
+            try:
+                dat = np.load(file_root)
+
+            except FileNotFoundError:
+                print('pass')
+                pass
+
+            else:
+                data.append(dat)
+                label_name = int(data_list.split(' ')[-1])
+
+                # data.append(self.make_input_shape(file_list, file_root))
+                # li.append(label_name)
+                onehot_label = to_categorical(label_name, num_classes=51)
+                label.append(onehot_label)
+                # TODO: make label using video_name
+
+        if not data:
+            print("Data is empty!!")
+
+        if not label:
+            print('Label is empty!!')
+
+        return np.asarray(data), np.asarray(label)
+
 
 if __name__=='__main__':
 
