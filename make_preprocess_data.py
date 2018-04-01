@@ -10,6 +10,7 @@ import re
 
 # one hot encoding relate
 from keras.utils import to_categorical
+from keras.preprocessing.image import ImageDataGenerator
 
 saction = ['brush_hair','cartwheel','catch','chew','clap','climb','climb_stairs',
       'dive','draw_sword','dribble','drink','eat','fall_floor','fencing',
@@ -64,24 +65,41 @@ class MakePreprocessData():
 
         assert len(_flow_x_list) == len(_flow_y_list)
 
+        # mean flow substraction
+        opt_mean_x = opt_mean_y = None
         for idx in range(len(_flow_x_list)):
             x_name = _flow_path + '/' + _flow_x_list[idx]
             y_name = _flow_path + '/' + _flow_y_list[idx]
 
-            opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE)
-            opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
+            if idx == 0:
+                opt_mean_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE)
+                opt_mean_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
+                continue
+
+            opt_mean_x += cv2.imread(x_name, cv2.IMREAD_GRAYSCALE)
+            opt_mean_y += cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
+
+        opt_mean_x /= len(_flow_x_list)
+        opt_mean_y /= len(_flow_y_list)
+
+        for idx in range(len(_flow_x_list)):
+            x_name = _flow_path + '/' + _flow_x_list[idx]
+            y_name = _flow_path + '/' + _flow_y_list[idx]
+
+            opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE) - opt_mean_x
+            opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) - opt_mean_y
 
             resized_opt_x = cv2.resize(opt_x, (224, 224))
             resized_opt_y = cv2.resize(opt_y, (224, 224))
 
-            normalized_opt_x = resized_opt_x/255        # 255 is max pixel value relate normalize
-            normalized_opt_y = resized_opt_y/255
+            #normalized_opt_x = resized_opt_x/255        # 255 is max pixel value relate normalize
+            #normalized_opt_y = resized_opt_y/255
 
             if idx == 0:
-                stacked_opt = np.dstack([normalized_opt_x, normalized_opt_y])
+                stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
                 continue
 
-            stacked_opt = np.dstack([stacked_opt, normalized_opt_x, normalized_opt_y])
+            stacked_opt = np.dstack([stacked_opt, resized_opt_x, resized_opt_y])
 
         return stacked_opt.astype(np.uint8)
 
@@ -141,6 +159,18 @@ class MakePreprocessData():
                 np.save(save_label, result_label)
 
 
+def normalize(_data_path):
+
+    data = []
+    for file_name in os.listdir(_data_path):
+        full_path = _data_path + '/' + file_name
+        dat = np.load(full_path)
+        data.append(dat)
+
+    datagen = ImageDataGenerator(featurewise_center=True,
+                                 featurewise_std_normalization=True)
+    print(datagen.fit(data))
+
 
 if __name__ == '__main__':
 
@@ -151,7 +181,7 @@ if __name__ == '__main__':
                     'y': [0, 255]}
 
 
-    preprocess = MakePreprocessData(10, bgr_min_max, flow_min_max)
+    # preprocess = MakePreprocessData(10, bgr_min_max, flow_min_max)
 
-    preprocess.run()
+    # preprocess.run()
 
