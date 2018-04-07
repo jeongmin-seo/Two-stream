@@ -167,21 +167,32 @@ def normalize(_data_path):
         dat = np.load(full_path)
         data.append(dat)
 
-    datagen = ImageDataGenerator(featurewise_center=True,
-                                 featurewise_std_normalization=True)
-    print(datagen.fit(data))
+    mean = np.mean(data,axis=0)
+    std = np.std(data,axis=0)
+    del data
 
+    save_path = "/home/jm/Two-stream_data/HMDB51/npy/frame_norm/"
+    for file_name in os.listdir(_data_path):
+        full_path = _data_path + '/' + file_name
+        dat = np.load(full_path)
+        dat = (dat - mean)/std
+        dat.astype(np.uint8)
+        np.save(dat, save_path+file_name)
+        del dat
 
 if __name__ == '__main__':
 
+    """
     bgr_min_max = {'b': [0, 255],
                    'g': [0, 255],
                    'r': [0, 255]}
     flow_min_max = {'x': [0, 255],
                     'y': [0, 255]}
-
+    """
 
     # preprocess = MakePreprocessData(10, bgr_min_max, flow_min_max)
 
     # preprocess.run()
+
+    normalize("/home/jm/Two-stream_data/HMDB51/npy/frame")
 

@@ -42,6 +42,11 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 set_session(sess)
 
+#########################################################
+#                   tensorboard setup                   #
+#########################################################
+tbCallBack = keras.callbacks.TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True, write_images=True)
+
 # If this variable is true, you can use pre-trained model.
 using_pretrained_model = False
 
@@ -122,6 +127,16 @@ def temporal_conv():
     return model
 
 
+class AccuracyHistory(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.acc = []
+
+    def on_epoch_end(self, batch, logs={}):
+        self.acc.append(logs.get('acc'))
+
+
+history = AccuracyHistory()
+
 if __name__ == '__main__':
 
     #####################################################
@@ -129,10 +144,10 @@ if __name__ == '__main__':
     #####################################################
 
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/npy/flow'
+    root = '/home/jm/Two-stream_data/HMDB51/flow_norm'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
 
-    loader = hmdb51.Temporal(root)
+    loader = hmdb51.Temporal(root,batch_size=64)
     loader.set_data_list(txt_root)
 
     print('complete setting data list')
@@ -144,15 +159,46 @@ if __name__ == '__main__':
     temporal_stream = temporal_conv()
 
     print('complete')
-    sgd = keras.optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     temporal_stream.compile(optimizer=sgd,  # 'Adam',
                         loss='categorical_crossentropy',
                         metrics=['accuracy'])
     print('complete network setting')
 
-    x,y = loader.load_all_data()
-    print(x.shape)
 
+    for epoch in range(500):
+        print('Epoch',epoch)
+
+        # reset batch
+        loader.shuffle()
+        while 1:
+            batch_x, batch_y, eof = loader.next_batch()
+            print(batch_x.shape)
+
+            #temporal_stream.train_on_batch(batch_x,batch_y)
+            temporal_stream.fit(batch_x, batch_y, batch_size=1,verbose=1)
+
+            del batch_x, batch_y
+            if eof:
+                break
+
+        if epoch % 100 == 0:
+
+            if epoch == 0:
+                continue
+
+            model_json = temporal_stream.to_json()
+            json_model_name = "%d_epoch_temporal_model.json" % epoch
+            with open(json_model_name, "w") as json_file:
+                json_file.write(model_json)
+
+            weight_name = "%d_epoch_temporal_weight.h5" % epoch
+            model_name = "%d_epoch_temporal_model.h5" % epoch
+            temporal_stream.save_weights(weight_name)
+            temporal_stream.save(model_name)
+            print("Saved model to disk")
+
+    """
     #TODO:modify parameters
     datagen = ImageDataGenerator(
         featurewise_center=True,
@@ -192,6 +238,6 @@ if __name__ == '__main__':
             temporal_stream.save_weights(weight_name)
             temporal_stream.save(model_name)
             print("Saved model to disk")
-
-
+    
+    """
 
