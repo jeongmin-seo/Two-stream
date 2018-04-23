@@ -22,25 +22,47 @@ saction = ['brush_hair','cartwheel','catch','chew','clap','climb','climb_stairs'
 
 class MakePreprocessData():
 
-    def __init__(self, _L, _bgr_min_max, _flow_min_max):
+    def __init__(self, _L): #, _bgr_min_max, _flow_min_max):
         self._frames_root = '/home/jm/Two-stream_data/HMDB51/frames'
         self._flow_root = '/home/jm/Two-stream_data/HMDB51/flow'
         self._save_path = '/home/jm/Two-stream_data/HMDB51/npy'
         self._L = _L
-        self._bgr_min_max = _bgr_min_max
-        self._flow_min_max = _flow_min_max
+        #self._bgr_min_max = _bgr_min_max
+        #self._flow_min_max = _flow_min_max
 
 
-    @staticmethod
-    def extract_start_frame(_frame_path):
+
+    def sampling_stack_frame(self, _flow_path):
 
         # extract start frame number using number of still image frame
-        frame_list = sorted(os.listdir(_frame_path))[0:-11]
-        frame_name = random.choice(frame_list)
-        frame_number = int(re.split('[_.]', frame_name)[1])
+        flow_all_list = os.listdir(_flow_path)
+        flow_list = {'x': [], 'y': []}
+        frame_length = len(flow_all_list)/2
 
-        return frame_name, frame_number
+        assert frame_length > self._L
+        sampling_interval = int(frame_length/self._L)
 
+        for flow in flow_all_list:
+            if re.split('[_.]', flow)[1] == 'x':
+                flow_list['x'].append(flow)
+
+            elif re.split('[_.]', flow)[1] == 'y':
+                flow_list['y'].append(flow)
+
+        flow_list['x'] = sorted(flow_list['x'])
+        flow_list['y'] = sorted(flow_list['y'])
+
+
+        _sampled_x_flow = []
+        _sampled_y_flow = []
+        for index in range(0,self._L):
+            clip_idx = index * sampling_interval
+            _sampled_x_flow.append(flow_list['x'][clip_idx])
+            _sampled_y_flow.append(flow_list['y'][clip_idx])
+
+        return _sampled_x_flow, _sampled_y_flow
+
+    """
     def select_flow_frame(self,_flow_path, _start_num):
 
         # To make flow data format, select start frame to L'th flow frame
@@ -55,16 +77,19 @@ class MakePreprocessData():
             elif re.split('[_.]', flow)[1] == 'y':
                 flow_list['y'].append(flow)
 
-            _flow_x_list = sorted(flow_list['x'])
-            _flow_y_list = sorted(flow_list['y'])
+        print(flow_list['x'])
+        _flow_x_list = sorted(flow_list['x'])
+        _flow_y_list = sorted(flow_list['y'])
+        print(_flow_x_list)
 
         return _flow_x_list[_start_num: _start_num+self._L], _flow_y_list[_start_num: _start_num+self._L]
-
+    """
     @staticmethod
     def make_temporal_data(_flow_path, _flow_x_list, _flow_y_list):
 
         assert len(_flow_x_list) == len(_flow_y_list)
 
+        """
         # mean flow substraction
         opt_mean_x = opt_mean_y = None
         for idx in range(len(_flow_x_list)):
@@ -76,18 +101,20 @@ class MakePreprocessData():
                 opt_mean_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
                 continue
 
-            opt_mean_x += cv2.imread(x_name, cv2.IMREAD_GRAYSCALE)
-            opt_mean_y += cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
+            opt_mean_x = opt_mean_x + cv2.imread(x_name, cv2.IMREAD_GRAYSCALE)
+            opt_mean_y = opt_mean_y + cv2.imread(y_name, cv2.IMREAD_GRAYSCALE)
 
-        opt_mean_x /= len(_flow_x_list)
-        opt_mean_y /= len(_flow_y_list)
+        opt_mean_x = opt_mean_x / len(_flow_x_list)
+        opt_mean_y = opt_mean_y /  len(_flow_y_list)
+        """
+
 
         for idx in range(len(_flow_x_list)):
             x_name = _flow_path + '/' + _flow_x_list[idx]
             y_name = _flow_path + '/' + _flow_y_list[idx]
 
-            opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE) - opt_mean_x
-            opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) - opt_mean_y
+            opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_x
+            opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
 
             resized_opt_x = cv2.resize(opt_x, (224, 224))
             resized_opt_y = cv2.resize(opt_y, (224, 224))
@@ -134,11 +161,11 @@ class MakePreprocessData():
                 flow_path = action_flow_path + '/' + video_number
 
                 # TODO: add extract_start_frame function
-                frame_name, start_frame_num = self.extract_start_frame(frame_path)
-                flow_x_list, flow_y_list = self.select_flow_frame(flow_path, start_frame_num)
+
+                flow_x_list, flow_y_list = self.sampling_stack_frame(flow_path)
 
                 #run all preprocess procedure
-                result_frame = self.make_spatial_data(frame_path, frame_name)
+                #result_frame = self.make_spatial_data(frame_path, frame_name)
                 result_flow = self.make_temporal_data(flow_path, flow_x_list, flow_y_list)
                 result_label = self.make_label(action)
 
@@ -150,17 +177,19 @@ class MakePreprocessData():
                     print(save_name)
                     continue
 
-                save_flow = self._save_path + '/flow/' + save_name + '_unidirctional_flow.npy'  #how to fix!!
-                save_frame = self._save_path + '/frame/' + save_name + '_frame.npy'
-                save_label = self._save_path + '/label/' + save_name + '_label.npy'
+                save_flow = self._save_path + '/flow/' + save_name + '_flow.npy'  #how to fix!!
+                #save_frame = self._save_path + '/frame/' + save_name + '_frame.npy'
+                #save_label = self._save_path + '/label/' + save_name + '_label.npy'
 
                 np.save(save_flow, result_flow)
-                np.save(save_frame, result_frame)
-                np.save(save_label, result_label)
+                #np.save(save_frame, result_frame)
+                #np.save(save_label, result_label)
+
 
 
 def normalize(_data_path):
 
+    """
     data = []
     for file_name in os.listdir(_data_path):
         full_path = _data_path + '/' + file_name
@@ -170,14 +199,14 @@ def normalize(_data_path):
     mean = np.mean(data,axis=0)
     std = np.std(data,axis=0)
     del data
-
-    save_path = "/home/jm/Two-stream_data/HMDB51/npy/frame_norm/"
+    """
+    save_path = "/home/jm/Two-stream_data/npy/255_norm_flow/"
     for file_name in os.listdir(_data_path):
         full_path = _data_path + '/' + file_name
         dat = np.load(full_path)
-        dat = (dat - mean)/std
-        dat.astype(np.uint8)
-        np.save(dat, save_path+file_name)
+        dat = dat/255
+        # dat.astype(np.uint8)
+        np.save(save_path+file_name, dat)
         del dat
 
 if __name__ == '__main__':
@@ -190,9 +219,9 @@ if __name__ == '__main__':
                     'y': [0, 255]}
     """
 
-    # preprocess = MakePreprocessData(10, bgr_min_max, flow_min_max)
+    preprocess = MakePreprocessData(10)
 
-    # preprocess.run()
+    preprocess.run()
 
-    normalize("/home/jm/Two-stream_data/HMDB51/npy/frame")
+    #normalize("/home/jm/Two-stream_data/npy/flow")
 

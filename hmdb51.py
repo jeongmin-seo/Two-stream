@@ -133,6 +133,12 @@ class Spatial():
         if not self._data_list:
             print('Data list is None')
         random.shuffle(self._data_list)
+        self._front_idx = 0
+        self._end_idx = self._batch_size
+
+    def get_data_list(self):
+
+        print(self._data_list[0])
 
 
 class Temporal(Spatial):
@@ -194,7 +200,7 @@ class Temporal(Spatial):
             print(data_list.split(' ')[-1])
             print('--')
             """
-            load_file_name = "%s_%05d_unidirctional_flow.npy" %(video_name, video_number)
+            load_file_name = "%s_%05d_flow.npy" %(video_name, video_number)
             file_root = self._root_dir + '/' + load_file_name
 
             try:

@@ -136,7 +136,7 @@ if __name__ == '__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
+    root = '/home/jm/Two-stream_data/frame'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
 
     loader = hmdb51.Spatial(root)
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     # spatial_stream = stream_conv()
     # temporal_stream = stream_conv()
     print('complete')
-    sgd = keras.optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     #spatial_opti = keras.optimizers.Adam(lr=1e-1, beta_1=0.99,
     #                                 beta_2=0.99, epsilon=1e-08, decay=1e-4)
 
@@ -208,10 +208,21 @@ if __name__ == '__main__':
         horizontal_flip=True)
 
     datagen.fit(x)
-    gen = datagen.flow(x, y, batch_size=128)
-    #spatial_stream.fit_generator(datagen.flow(x, y, batch_size=1), epochs=50000)
-    # spatial_stream.fit(x, y, verbose=1, batch_size=64, epochs=50000)
+    # gen = datagen.flow(x, y, batch_size=128)
+    spatial_stream.fit_generator(datagen.flow(x, y, batch_size=64), epochs=100,verbose=1)
 
+    model_json = spatial_stream.to_json()
+    json_model_name = "%d_epoch_model.json" % 100
+    with open(json_model_name, "w") as json_file:
+        json_file.write(model_json)
+
+    weight_name = "%d_epoch_weight.h5" % 100
+    model_name = "%d_epoch_model.h5" % 100
+    spatial_stream.save_weights(weight_name)
+    spatial_stream.save(model_name)
+    print("Saved model to disk")
+
+    """
     for e in range(50000):
         print('Epoch', e)
         batches = 0
@@ -239,7 +250,7 @@ if __name__ == '__main__':
             spatial_stream.save(model_name)
             print("Saved model to disk")
 
-    """
+    
     for epoch in range(1,50000):
         start = timeit.default_timer()
         
