@@ -136,7 +136,7 @@ if __name__ == '__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/frame'
+    root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
 
     loader = hmdb51.Spatial(root)

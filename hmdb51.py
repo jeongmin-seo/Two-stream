@@ -88,10 +88,11 @@ class Spatial():
             video_name = video_tag.split('/')[0]
             video_number = int(video_tag.split('/')[1])
 
+            """
             print(data_list)
             print(data_list.split(' ')[-1])
             print('--')
-
+            """
             load_file_name = "%s_%05d_frame.npy" %(video_name, video_number)
             file_root = self._root_dir + '/' + load_file_name
 

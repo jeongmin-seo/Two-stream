@@ -49,8 +49,9 @@ from keras.initializers import glorot_uniform
 #########################################################
 #                   tensorboard setup                   #
 #########################################################
-from keras.callbacks import TensorBoard
-tbCallBack = TensorBoard(log_dir='./Graph')
+from keras.callbacks import TensorBoard, ModelCheckpoint
+tbCallBack = TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True, write_images=True)
+mcCallBack = ModelCheckpoint('./flow_result/{epoch:0}')
 
 def write_log(callback, names, logs, batch_no):
     for name, value in zip(names, logs):
@@ -256,24 +257,24 @@ if __name__ == '__main__':
         print("loss:", avg_loss, "acc:", avg_acc)
         write_log(tbCallBack, ["train_loss", "train_acc"], [avg_loss, avg_acc], epoch)
 
-        """
-        if epoch % 100 == 0:
+
+        if epoch % 10 == 0:
 
             if epoch == 0:
                 continue
 
             model_json = temporal_stream.to_json()
-            json_model_name = "%d_epoch_temporal_model.json" % epoch
+            json_model_name = "./flow_result/%d_epoch_temporal_model.json" % epoch
             with open(json_model_name, "w") as json_file:
                 json_file.write(model_json)
 
-            weight_name = "%d_epoch_temporal_weight.h5" % epoch
-            model_name = "%d_epoch_temporal_model.h5" % epoch
+            weight_name = "./flow_result/%d_epoch_temporal_weight.h5" % epoch
+            model_name = "./flow_result/%d_epoch_temporal_model.h5" % epoch
             temporal_stream.save_weights(weight_name)
             temporal_stream.save(model_name)
             print("Saved model to disk")
 
-        """
+
 
     """
     #TODO:modify parameters
