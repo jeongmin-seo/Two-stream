@@ -9,8 +9,8 @@ import glob
 import re
 
 # one hot encoding relate
-from keras.utils import to_categorical
-from keras.preprocessing.image import ImageDataGenerator
+#from keras.utils import to_categorical
+#from keras.preprocessing.image import ImageDataGenerator
 
 saction = ['brush_hair','cartwheel','catch','chew','clap','climb','climb_stairs',
       'dive','draw_sword','dribble','drink','eat','fall_floor','fencing',
@@ -117,13 +117,7 @@ class MakePreprocessData():
             opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
 
             opt = np.dstack([opt_x, opt_y])
-            resized_opt = random_cropping(opt, 224)
-            #resized_opt_x = cv2.resize(opt_x, (224, 224))
-            #resized_opt_y = cv2.resize(opt_y, (224, 224))
-
-            normalized_opt = resized_opt/255
-            #normalized_opt_x = resized_opt_x/255        # 255 is max pixel value relate normalize
-            #normalized_opt_y = resized_opt_y/255
+            normalized_opt = opt/255
 
             if idx == 0:
                 #stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
@@ -132,7 +126,9 @@ class MakePreprocessData():
 
             stacked_opt = np.dstack([stacked_opt, normalized_opt])
 
-        return stacked_opt.astype(np.float)
+        resized_opt = random_cropping(stacked_opt, 224)
+
+        return resized_opt.astype(np.float)
 
     @staticmethod
     def make_label(_action):
@@ -192,14 +188,13 @@ class MakePreprocessData():
                 np.save(save_label, result_label)
 
 def random_cropping(_image, _size):
-    row, col, _ = _image.shape()
+    row, col, _ = _image.shape
     left, top = random.choice(range(0, row - _size)), random.choice(range(0, col - _size))
 
     return _image[left:left+_size, top:top+_size]
 
 def normalize(_data_path):
 
-    """
     data = []
     for file_name in os.listdir(_data_path):
         full_path = _data_path + '/' + file_name
@@ -209,6 +204,7 @@ def normalize(_data_path):
     mean = np.mean(data,axis=0)
     std = np.std(data,axis=0)
     del data
+
     """
     save_path = "/home/jm/Two-stream_data/npy/255_norm_flow/"
     for file_name in os.listdir(_data_path):
@@ -218,6 +214,7 @@ def normalize(_data_path):
         # dat.astype(np.uint8)
         np.save(save_path+file_name, dat)
         del dat
+    """
 
 if __name__ == '__main__':
 
@@ -229,9 +226,10 @@ if __name__ == '__main__':
                     'y': [0, 255]}
     """
 
-    preprocess = MakePreprocessData(10)
+    #preprocess = MakePreprocessData(10)
+    #preprocess.run()
 
-    preprocess.run()
+    root = 'D:/workspace/data/_npy'
 
     #normalize("/home/jm/Two-stream_data/npy/flow")
 
