@@ -116,19 +116,23 @@ class MakePreprocessData():
             opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_x
             opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
 
-            resized_opt_x = cv2.resize(opt_x, (224, 224))
-            resized_opt_y = cv2.resize(opt_y, (224, 224))
+            opt = np.dstack([opt_x, opt_y])
+            resized_opt = random_cropping(opt, 224)
+            #resized_opt_x = cv2.resize(opt_x, (224, 224))
+            #resized_opt_y = cv2.resize(opt_y, (224, 224))
 
+            normalized_opt = resized_opt/255
             #normalized_opt_x = resized_opt_x/255        # 255 is max pixel value relate normalize
             #normalized_opt_y = resized_opt_y/255
 
             if idx == 0:
-                stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
+                #stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
+                stacked_opt = normalized_opt
                 continue
 
-            stacked_opt = np.dstack([stacked_opt, resized_opt_x, resized_opt_y])
+            stacked_opt = np.dstack([stacked_opt, normalized_opt])
 
-        return stacked_opt.astype(np.uint8)
+        return stacked_opt.astype(np.float)
 
     @staticmethod
     def make_label(_action):
@@ -145,10 +149,11 @@ class MakePreprocessData():
         img_name = _frame_path + '/' + _frame_name
 
         img = cv2.imread(img_name)
-        resized_img = cv2.resize(img, (224, 224))   # (224, 224, 3) is image size in paper
+        resized_img = random_cropping(img, 224)
+        #resized_img = cv2.resize(img, (224, 224))   # (224, 224, 3) is image size in paper
         normalized_img = resized_img/255    # 255 is max pixel value relate normalize
 
-        return normalized_img.astype(np.uint8)
+        return normalized_img.astype(np.float)
 
     def run(self):
 
@@ -163,9 +168,10 @@ class MakePreprocessData():
                 # TODO: add extract_start_frame function
 
                 flow_x_list, flow_y_list = self.sampling_stack_frame(flow_path)
+                frame_name = random.choice(os.listdir(frame_path))
 
                 #run all preprocess procedure
-                #result_frame = self.make_spatial_data(frame_path, frame_name)
+                result_frame = self.make_spatial_data(frame_path, frame_name)
                 result_flow = self.make_temporal_data(flow_path, flow_x_list, flow_y_list)
                 result_label = self.make_label(action)
 
@@ -178,14 +184,18 @@ class MakePreprocessData():
                     continue
 
                 save_flow = self._save_path + '/flow/' + save_name + '_flow.npy'  #how to fix!!
-                #save_frame = self._save_path + '/frame/' + save_name + '_frame.npy'
-                #save_label = self._save_path + '/label/' + save_name + '_label.npy'
+                save_frame = self._save_path + '/frame/' + save_name + '_frame.npy'
+                save_label = self._save_path + '/label/' + save_name + '_label.npy'
 
                 np.save(save_flow, result_flow)
-                #np.save(save_frame, result_frame)
-                #np.save(save_label, result_label)
+                np.save(save_frame, result_frame)
+                np.save(save_label, result_label)
 
+def random_cropping(_image, _size):
+    row, col, _ = _image.shape()
+    left, top = random.choice(range(0, row - _size)), random.choice(range(0, col - _size))
 
+    return _image[left:left+_size, top:top+_size]
 
 def normalize(_data_path):
 
