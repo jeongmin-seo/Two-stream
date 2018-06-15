@@ -27,10 +27,6 @@ class MakePreprocessData():
         self._flow_root = '/home/jm/Two-stream_data/HMDB51/flow'
         self._save_path = '/home/jm/Two-stream_data/HMDB51/npy'
         self._L = _L
-        #self._bgr_min_max = _bgr_min_max
-        #self._flow_min_max = _flow_min_max
-
-
 
     def sampling_stack_frame(self, _flow_path):
 
@@ -144,16 +140,36 @@ class MakePreprocessData():
 
         return categorical_label.astype(np.uint8)
 
-    @staticmethod
-    def make_spatial_data(_frame_path, _frame_name):
-        img_name = _frame_path + '/' + _frame_name
+    def make_spatial_data(self, _frame_path, _action, _vnumber):
+        spatial_save_path = os.path.join(self._save_path, 'frame')
+        for _frame_name in os.listdir(_frame_path):
+            img_name = _frame_path + '/' + _frame_name
+            img = cv2.imread(img_name)
 
-        img = cv2.imread(img_name)
-        resized_img = random_cropping(img, 224)
-        #resized_img = cv2.resize(img, (224, 224))   # (224, 224, 3) is image size in paper
-        normalized_img = resized_img/255    # 255 is max pixel value relate normalize
+            save_name = "%s-%05d" % (_action, int(_vnumber))
+            save_name = spatial_save_path + save_name
 
-        return normalized_img.astype(np.float)
+            # save original image after resize
+            resized_img = cv2.resize(img, 224)
+            resized_img = resized_img/255          # for normalize
+            resized_save_path = save_name + '-original.npy'
+            np.save(resized_save_path, resized_img.astype(np.float16))
+
+            # save augmentation image after cropping and flipping
+            for i in range(5):
+                cropped_img = random_cropping(img, 224)
+                flipped_img = horizontal_flip(cropped_img)
+
+                cropped_img = cropped_img/255
+                flipped_img = flipped_img/255   # for normalize
+
+                cropped_save_path = save_name + '-cropped-%d.npy' % i
+                flipped_save_path = save_name + '-flipped-%d.npy' % i
+
+                np.save(cropped_save_path, cropped_img)
+                np.save(flipped_save_path, flipped_img)
+
+        return 0
 
     def run(self):
 
@@ -165,37 +181,22 @@ class MakePreprocessData():
                 frame_path = action_frame_path + '/' + video_number
                 flow_path = action_flow_path + '/' + video_number
 
-                # TODO: add extract_start_frame function
-
                 flow_x_list, flow_y_list = self.sampling_stack_frame(flow_path)
-                frame_name = random.choice(os.listdir(frame_path))
 
                 #run all preprocess procedure
-                result_frame = self.make_spatial_data(frame_path, frame_name)
+                self.make_spatial_data(frame_path, action, video_number)
                 result_flow = self.make_temporal_data(flow_path, flow_x_list, flow_y_list)
                 result_label = self.make_label(action)
 
-                #save_action = action.replace('_', ' ')
-
-                save_name = "%s_%05d" %(action, int(video_number))
-
-                if result_flow.shape[2] != 20:
-                    print(save_name)
-                    continue
-
-                save_flow = self._save_path + '/flow/' + save_name + '_flow.npy'  #how to fix!!
-                save_frame = self._save_path + '/frame/' + save_name + '_frame.npy'
-                save_label = self._save_path + '/label/' + save_name + '_label.npy'
-
-                np.save(save_flow, result_flow)
-                np.save(save_frame, result_frame)
-                np.save(save_label, result_label)
 
 def random_cropping(_image, _size):
     row, col, _ = _image.shape()
     left, top = random.choice(range(0, row - _size)), random.choice(range(0, col - _size))
 
     return _image[left:left+_size, top:top+_size]
+
+def horizontal_flip(_image):
+    return cv2.flip(_image,1)
 
 def normalize(_data_path):
 
@@ -230,8 +231,5 @@ if __name__ == '__main__':
     """
 
     preprocess = MakePreprocessData(10)
-
     preprocess.run()
-
-    #normalize("/home/jm/Two-stream_data/npy/flow")
 
