@@ -12,14 +12,21 @@ li = []
 
 class Spatial():
     def __init__(self, root_dir, batch_size=32):
-        self._data_list = None
-        self._root_dir = root_dir
+        self._data_list = []
+        self._root_dir = root_dir   # data root
         self._batch_size = batch_size
         self._front_idx = 0
         self._end_idx = batch_size
 
     def set_data_list(self, _data_txt, _shuffle=True):
-        self._data_list = self.data_dir_reader(_data_txt)
+        cv_split_info = self.data_dir_reader(_data_txt)
+
+        for file_name in os.listdir(self._root_dir):
+            for cv_split_name in cv_split_info:
+                if cv_split_name in file_name:
+                    self._data_list.append(file_name)
+
+        # self._data_list
 
         if _shuffle:
             random.shuffle(self._data_list)
@@ -31,7 +38,9 @@ class Spatial():
         f = open(_txt_path, 'r')
         for dir_name in f.readlines():
             dir_name = dir_name.replace('\n', '')
-            tmp.append(dir_name)
+            split_info = dir_name.split(' ')
+            split_info[0] = split_info[0].replace('/', '-')
+            tmp.append(split_info)
 
         return tmp
 
@@ -84,16 +93,12 @@ class Spatial():
 
         #print(self._data_list[self._front_idx: self._end_idx])
         for data_list in self._data_list[self._front_idx: self._end_idx]:
-            video_tag = data_list.split(' ')[0]
-            video_name = video_tag.split('/')[0]
-            video_number = int(video_tag.split('/')[1])
+            # video_tag = data_list.split(' ')[0]
+            # video_name = video_tag.split('/')[0]
+            # video_number = int(video_tag.split('/')[1])
 
-            """
-            print(data_list)
-            print(data_list.split(' ')[-1])
-            print('--')
-            """
-            load_file_name = "%s_%05d_frame.npy" %(video_name, video_number)
+            # load_file_name = "%s_%05d_frame.npy" %(video_name, video_number)
+            load_file_name = data_list
             file_root = self._root_dir + '/' + load_file_name
 
             try:

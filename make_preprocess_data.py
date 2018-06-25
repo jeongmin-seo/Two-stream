@@ -20,11 +20,13 @@ saction = ['brush_hair','cartwheel','catch','chew','clap','climb','climb_stairs'
       'shoot_bow','shoot_gun','sit','situp','smile','smoke','somersault',
       'stand','swing_baseball','sword_exercise','sword','talk','throw','turn','walk','wave']
 
+image_size = (224, 224)
+
 class MakePreprocessData():
 
     def __init__(self, _L): #, _bgr_min_max, _flow_min_max):
-        self._frames_root = '/home/jm/Two-stream_data/HMDB51/frames'
-        self._flow_root = '/home/jm/Two-stream_data/HMDB51/flow'
+        self._frames_root = '/home/jm/Two-stream_data/HMDB51/original/frames'
+        self._flow_root = '/home/jm/Two-stream_data/HMDB51/original/flow'
         self._save_path = '/home/jm/Two-stream_data/HMDB51/npy'
         self._L = _L
 
@@ -80,9 +82,10 @@ class MakePreprocessData():
 
         return _flow_x_list[_start_num: _start_num+self._L], _flow_y_list[_start_num: _start_num+self._L]
     """
-    @staticmethod
-    def make_temporal_data(_flow_path, _flow_x_list, _flow_y_list):
 
+    def make_temporal_data(self, _flow_path, _action, _vnumber):
+
+        _flow_x_list, _flow_y_list = self.sampling_stack_frame(_flow_path)
         assert len(_flow_x_list) == len(_flow_y_list)
 
         """
@@ -104,7 +107,7 @@ class MakePreprocessData():
         opt_mean_y = opt_mean_y /  len(_flow_y_list)
         """
 
-
+        temporal_save_path = os.path.join(self._save_path, 'flow')
         for idx in range(len(_flow_x_list)):
             x_name = _flow_path + '/' + _flow_x_list[idx]
             y_name = _flow_path + '/' + _flow_y_list[idx]
@@ -113,7 +116,8 @@ class MakePreprocessData():
             opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
 
             opt = np.dstack([opt_x, opt_y])
-            normalized_opt = opt/255
+            resized_opt = cv2.resize(opt, (224,224))
+            normalized_opt = resized_opt # /255           # TODO: check this operation is correct
 
             if idx == 0:
                 #stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
@@ -122,9 +126,13 @@ class MakePreprocessData():
 
             stacked_opt = np.dstack([stacked_opt, normalized_opt])
 
-        resized_opt = random_cropping(stacked_opt, 224)
+        save_name = '%s-%05d.npy' % (_action, int(_vnumber))
+        save_path = os.path.join(temporal_save_path, save_name)
+        stacked_opt = stacked_opt.astype(np.uint8)
+        np.save(save_path ,stacked_opt)
+        # resized_opt = random_cropping(stacked_opt, 224)
 
-        return resized_opt.astype(np.float)
+        return 0 # resized_opt.astype(np.float)
 
     @staticmethod
     def make_label(_action):
@@ -143,27 +151,30 @@ class MakePreprocessData():
             img = cv2.imread(img_name)
 
             save_name = "%s-%05d" % (_action, int(_vnumber))
-            save_name = spatial_save_path + save_name
+            save_name = os.path.join(spatial_save_path,  save_name)
 
             # save original image after resize
-            resized_img = cv2.resize(img, 224)
-            resized_img = resized_img/255          # for normalize
+            resized_img = cv2.resize(img, (224,224))
+            # resized_img = resized_img/255          # for normalize
             resized_save_path = save_name + '-original.npy'
-            np.save(resized_save_path, resized_img.astype(np.float16))
+            np.save(resized_save_path, resized_img.astype(np.uint8))
+
+            if img.shape[0] < image_size[0] or img.shape[1] < image_size[1]:
+                continue
 
             # save augmentation image after cropping and flipping
             for i in range(5):
                 cropped_img = random_cropping(img, 224)
                 flipped_img = horizontal_flip(cropped_img)
 
-                cropped_img = cropped_img/255
-                flipped_img = flipped_img/255   # for normalize
+                # cropped_img = cropped_img/255
+                # flipped_img = flipped_img/255   # for normalize
 
                 cropped_save_path = save_name + '-cropped-%d.npy' % i
                 flipped_save_path = save_name + '-flipped-%d.npy' % i
 
-                np.save(cropped_save_path, cropped_img)
-                np.save(flipped_save_path, flipped_img)
+                np.save(cropped_save_path, cropped_img.astype(np.uint8))
+                np.save(flipped_save_path, flipped_img.astype(np.uint8))
 
         return 0
 
@@ -177,12 +188,10 @@ class MakePreprocessData():
                 frame_path = action_frame_path + '/' + video_number
                 flow_path = action_flow_path + '/' + video_number
 
-                flow_x_list, flow_y_list = self.sampling_stack_frame(flow_path)
-
                 #run all preprocess procedure
                 self.make_spatial_data(frame_path, action, video_number)
-                result_flow = self.make_temporal_data(flow_path, flow_x_list, flow_y_list)
-                result_label = self.make_label(action)
+                self.make_temporal_data(flow_path, action, video_number)
+                # result_label = self.make_label(action)
 
 
 def random_cropping(_image, _size):
@@ -219,18 +228,7 @@ def normalize(_data_path):
 
 if __name__ == '__main__':
 
-    """
-    bgr_min_max = {'b': [0, 255],
-                   'g': [0, 255],
-                   'r': [0, 255]}
-    flow_min_max = {'x': [0, 255],
-                    'y': [0, 255]}
-    """
-
     preprocess = MakePreprocessData(10)
     preprocess.run()
-
-    #preprocess = MakePreprocessData(10)
-    #preprocess.run()
 
 
