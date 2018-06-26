@@ -22,18 +22,13 @@ from keras.utils import np_utils
 import scipy.io as sio
 import numpy as np
 import keras.layers
-from keras.utils.np_utils import to_categorical
-
-from keras.utils.vis_utils import model_to_dot
-import random
-import matplotlib.pyplot as plt
+import os
+import progressbar
 
 # custom module
 import ucf101
 import hmdb51
 
-# time stamp
-import timeit
 
 # set the quantity of GPU memory consumed
 import tensorflow as tf
@@ -45,14 +40,32 @@ set_session(sess)
 
 # using pretrained model
 using_pretrained_model = False
+save_model_path = '/home/jm/workspace/Two-stream/frame_model'
 
+#########################################################
+#                   tensorboard setup                   #
+#########################################################
+from keras.callbacks import TensorBoard, ModelCheckpoint
+tbCallBack = TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True, write_images=True)
+# mcCallBack = ModelCheckpoint('./flow_result/{epoch:0}', monitor='val_loss',
+#                              verbose=1, save_best_only=True)
+# mcCallBack.
+
+def write_log(callback, names, logs, batch_no):
+    for name, value in zip(names, logs):
+        summary = tf.Summary()
+        summary_value = summary.value.add()
+        summary_value.simple_value = value
+        summary_value.tag = name
+        callback.writer.add_summary(summary, batch_no)
+        callback.writer.flush()
 
 ########################################
 #           Set stream model           #
 ########################################
 def stream_conv():
 
-    # img_shape = Input(shape=(224, 224, 57))  # TODO: modify data size (ref Two-stream conv paper)
+    # img_shape = Input(shape=(224, 224, 57))  # TODO: modify data size (ref. Two-stream conv paper)
     model = Sequential()
 
     # conv1 layer
@@ -122,7 +135,6 @@ def stream_conv():
     """
     return model
 
-
 if __name__ == '__main__':
 
     #####################################################
@@ -137,7 +149,7 @@ if __name__ == '__main__':
     """
     # HMDB-51 data loader
     root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
-    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
+    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
     loader = hmdb51.Spatial(root)
     loader.set_data_list(txt_root)
@@ -148,11 +160,11 @@ if __name__ == '__main__':
     #     set convolution neural network structure      #
     #####################################################
     print('set network')
-    """
+
     spatial_stream = stream_conv()
     if using_pretrained_model:
-        # spatial_stream = load_model("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
-        spatial_stream.load_weights("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
+        spatial_stream = load_model("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
+        # spatial_stream.load_weights("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
         print("weight loaded")
     """
     #weight_path = "/home/jm/workspace/Two-stream/pre-trained_model/model/vgg16_weights.h5"
@@ -173,7 +185,7 @@ if __name__ == '__main__':
 
     spatial_stream = Model(input=img_input, outputs=x)
     spatial_stream.summary()
-
+    """
 
 
     """
@@ -183,8 +195,7 @@ if __name__ == '__main__':
     spatial_stream.add(Dropout(0.5))
     spatial_stream.add(Dense(51, activation='softmax'))
     """
-    # spatial_stream = stream_conv()
-    # temporal_stream = stream_conv()
+
     print('complete')
     sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     #spatial_opti = keras.optimizers.Adam(lr=1e-1, beta_1=0.99,
@@ -195,32 +206,6 @@ if __name__ == '__main__':
                         metrics=['accuracy'])
     print('complete network setting')
 
-    x,y = loader.load_all_data()
-    print(x.shape)
-
-    #TODO:modify parameters
-    datagen = ImageDataGenerator(
-        featurewise_center=True,
-        featurewise_std_normalization=True,
-        rotation_range=20,
-        width_shift_range=0.2,
-        height_shift_range=0.2,
-        horizontal_flip=True)
-
-    datagen.fit(x)
-    # gen = datagen.flow(x, y, batch_size=128)
-    spatial_stream.fit_generator(datagen.flow(x, y, batch_size=64), epochs=100,verbose=1)
-
-    model_json = spatial_stream.to_json()
-    json_model_name = "%d_epoch_model.json" % 100
-    with open(json_model_name, "w") as json_file:
-        json_file.write(model_json)
-
-    weight_name = "%d_epoch_weight.h5" % 100
-    model_name = "%d_epoch_model.h5" % 100
-    spatial_stream.save_weights(weight_name)
-    spatial_stream.save(model_name)
-    print("Saved model to disk")
 
     """
     for e in range(50000):
@@ -249,32 +234,39 @@ if __name__ == '__main__':
             spatial_stream.save_weights(weight_name)
             spatial_stream.save(model_name)
             print("Saved model to disk")
+    """
+    tmp_numiter = len(loader.get_data_list())/32
+    num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
+    tbCallBack.set_model(spatial_stream)
+    for epoch in range(50000):
+        print('Epoch', epoch)
 
-    
-    for epoch in range(1,50000):
-        start = timeit.default_timer()
-        
-        
-        print('%d epoch train start' % epoch)
-        loader.shuffle()    # shuffle data set
-        while 1:
-            x, y, eof = loader.next_batch()
-            print(x.shape)
-            spatial_stream.fit(x, y, verbose=1)
+        # reset batch
+        loader.shuffle()
+        # loader.get_data_list()
+        loss_list = []
+        acc_list = []
+        for i in progressbar.progressbar(range(num_iter)):
+        # while 1:
+            batch_x, batch_y, eof = loader.next_batch()
+            batch_log = spatial_stream.train_on_batch(batch_x, batch_y)
+            loss_list.append(batch_log[0])
+            acc_list.append(batch_log[1])
 
-            del x, y
+            del batch_x, batch_y
             if eof:
                 break
-        
-        stop = timeit.default_timer()
-        print(stop-start)
 
-        print('=' * 50)
-        print('%d epoch end' % epoch)
-    
-    print('*'*50)
-    print('complete train')
-    """
+        avg_loss = np.mean(loss_list)
+        avg_acc = np.mean(acc_list)
+        print("loss:", avg_loss, "acc:", avg_acc)
+        write_log(tbCallBack, ["train_loss", "train_acc"], [avg_loss, avg_acc], epoch)
 
+        if epoch % 100 == 0:
+            if epoch == 0:
+                continue
 
+            model_name = "./frame_model/%d_epoch_temporal_model.h5" % epoch
+            spatial_stream.save(model_name)
+            print("Saved model to disk")
 

@@ -67,6 +67,8 @@ if __name__ == '__main__':
         print(predict.shape[0])
         for i in range(predict.shape[0]):
             all += 1
+            print(batch_y[i])
+            print(predict[i])
             if batch_y[i].argmax() == predict[i].argmax():
                 cor += 1
             #y_true.append(batch_y[i].argmax())

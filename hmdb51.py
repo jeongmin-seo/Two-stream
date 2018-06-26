@@ -2,6 +2,7 @@
 #     import requirement libraries     #
 ########################################
 import os
+import re
 import numpy as np
 import random
 import cv2
@@ -19,14 +20,24 @@ class Spatial():
         self._end_idx = batch_size
 
     def set_data_list(self, _data_txt, _shuffle=True):
-        cv_split_info = self.data_dir_reader(_data_txt)
+        cv_lists = self.data_dir_reader(_data_txt)
 
+        """
         for file_name in os.listdir(self._root_dir):
             for cv_split_name in cv_split_info:
                 if cv_split_name in file_name:
                     self._data_list.append(file_name)
+        """
+        final_list = []
+        for cv_list in cv_lists:
+            file_name = cv_list[0]
+            label = cv_list[1]
+            final_list.append([file_name + "-original", label])
+            for i in range(5):
+                final_list.append([file_name + "-cropped-%d" % i, label])
+                final_list.append([file_name + "-flipped-%d" % i, label])
 
-        # self._data_list
+        self._data_list = final_list
 
         if _shuffle:
             random.shuffle(self._data_list)
@@ -36,11 +47,13 @@ class Spatial():
 
         tmp = []
         f = open(_txt_path, 'r')
-        for dir_name in f.readlines():
-            dir_name = dir_name.replace('\n', '')
-            split_info = dir_name.split(' ')
-            split_info[0] = split_info[0].replace('/', '-')
-            tmp.append(split_info)
+        for line in f.readlines():
+            line = line.replace('\n', '')
+            split_line = re.split(r"[\s+,\/]*", line)
+            # split_info = dir_name.split(' ')
+            # split_info[0] = split_info[0].replace('/', '-')
+            file_info = split_line[0] + "-%05d" % int(split_line[1])
+            tmp.append([file_info, int(split_line[-1])])
 
         return tmp
 
@@ -49,17 +62,12 @@ class Spatial():
         label = []
 
         for data_list in self._data_list:
-            video_tag = data_list.split(' ')[0]
-            video_name = video_tag.split('/')[0]
-            video_number = int(video_tag.split('/')[1])
-            """
-            print(data_list)
-            print(data_list.split(' ')[-1])
-            print('--')
-            """
-            load_file_name = "%s_%05d_frame.npy" % (video_name, video_number)
-            file_root = self._root_dir + '/' + load_file_name
+            file_name = data_list[0]
+            cur_label = data_list[1]
 
+            load_file_name = file_name + ".npy"
+            file_root = os.path.join(self._root_dir, load_file_name)
+            print(file_root)
             try:
                 dat = np.load(file_root)
 
@@ -69,11 +77,11 @@ class Spatial():
 
             else:
                 data.append(dat)
-                label_name = int(data_list.split(' ')[-1])
+                # label_name = data_list.split('-')[0]
 
                 # data.append(self.make_input_shape(file_list, file_root))
                 # li.append(label_name)
-                onehot_label = to_categorical(label_name, num_classes=51)
+                onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
 
@@ -93,22 +101,20 @@ class Spatial():
 
         #print(self._data_list[self._front_idx: self._end_idx])
         for data_list in self._data_list[self._front_idx: self._end_idx]:
-            # video_tag = data_list.split(' ')[0]
-            # video_name = video_tag.split('/')[0]
-            # video_number = int(video_tag.split('/')[1])
+            file_name = data_list[0]
+            cur_label = data_list[1]
 
-            # load_file_name = "%s_%05d_frame.npy" %(video_name, video_number)
-            load_file_name = data_list
-            file_root = self._root_dir + '/' + load_file_name
+            load_file_name = file_name + '.npy'
+            file_root = os.path.join(self._root_dir + '/' + load_file_name)
 
             try:
                 dat = np.load(file_root)
                 data.append(dat)
-                label_name = int(data_list.split(' ')[-1])
+                # label_name = data_list.split('-')[0]
 
                 # data.append(self.make_input_shape(file_list, file_root))
                 # li.append(label_name)
-                onehot_label = to_categorical(label_name, num_classes=51)
+                onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
 
@@ -144,25 +150,26 @@ class Spatial():
 
     def get_data_list(self):
 
-        print(self._data_list[0])
+        return self._data_list
 
 
 class Temporal(Spatial):
+
+    def set_data_list(self, _data_txt, _shuffle=True):
+        self._data_list = self.data_dir_reader(_data_txt)
+
+        if _shuffle:
+            random.shuffle(self._data_list)
 
     def load_all_data(self):
         data = []
         label = []
 
         for data_list in self._data_list:
-            video_tag = data_list.split(' ')[0]
-            video_name = video_tag.split('/')[0]
-            video_number = int(video_tag.split('/')[1])
-            """
-            print(data_list)
-            print(data_list.split(' ')[-1])
-            print('--')
-            """
-            load_file_name = "%s_%05d_unidirctional_flow.npy" % (video_name, video_number)
+            file_name = data_list[0]
+            cur_label = data_list[1]
+
+            load_file_name = file_name + ".npy"
             file_root = self._root_dir + '/' + load_file_name
 
             try:
@@ -174,11 +181,11 @@ class Temporal(Spatial):
 
             else:
                 data.append(dat)
-                label_name = int(data_list.split(' ')[-1])
+                # label_name = data_list.split('-')
 
                 # data.append(self.make_input_shape(file_list, file_root))
                 # li.append(label_name)
-                onehot_label = to_categorical(label_name, num_classes=51)
+                onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
 
@@ -198,25 +205,20 @@ class Temporal(Spatial):
 
         #print(self._data_list[self._front_idx: self._end_idx])
         for data_list in self._data_list[self._front_idx: self._end_idx]:
-            video_tag = data_list.split(' ')[0]
-            video_name = video_tag.split('/')[0]
-            video_number = int(video_tag.split('/')[1])
-            """
-            print(data_list)
-            print(data_list.split(' ')[-1])
-            print('--')
-            """
-            load_file_name = "%s_%05d_flow.npy" %(video_name, video_number)
-            file_root = self._root_dir + '/' + load_file_name
+            file_name = data_list[0]
+            cur_label = data_list[1]
+
+            load_file_name = file_name + ".npy"
+            file_root = os.path.join(self._root_dir, load_file_name)
 
             try:
                 dat = np.load(file_root)
                 data.append(dat)
-                label_name = int(data_list.split(' ')[-1])
+                # label_name = data_list.split('-')[0]
 
                 # data.append(self.make_input_shape(file_list, file_root))
                 # li.append(label_name)
-                onehot_label = to_categorical(label_name, num_classes=51)
+                onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
 
@@ -247,7 +249,7 @@ if __name__=='__main__':
 
     # HMDB-51 data loader
     root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
-    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
+    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
     loader = Spatial(root)
     loader.set_data_list(txt_root)
