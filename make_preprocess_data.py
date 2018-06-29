@@ -5,12 +5,10 @@ import os
 import numpy as np
 import random
 import cv2
-import glob
 import re
 
 # one hot encoding relate
 from keras.utils import to_categorical
-#from keras.preprocessing.image import ImageDataGenerator
 
 saction = ['brush_hair','cartwheel','catch','chew','clap','climb','climb_stairs',
       'dive','draw_sword','dribble','drink','eat','fall_floor','fencing',
@@ -27,7 +25,7 @@ class MakePreprocessData():
     def __init__(self, _L): #, _bgr_min_max, _flow_min_max):
         self._frames_root = '/home/jm/Two-stream_data/HMDB51/original/frames'
         self._flow_root = '/home/jm/Two-stream_data/HMDB51/original/flow'
-        self._save_path = '/home/jm/Two-stream_data/HMDB51/npy'
+        self._save_path = '/hdd1/HMDB51/preprocess' # '/home/jm/Two-stream_data/HMDB51/npy'
         self._L = _L
 
     def sampling_stack_frame(self, _flow_path):
@@ -59,29 +57,6 @@ class MakePreprocessData():
             _sampled_y_flow.append(flow_list['y'][clip_idx])
 
         return _sampled_x_flow, _sampled_y_flow
-
-    """
-    def select_flow_frame(self,_flow_path, _start_num):
-
-        # To make flow data format, select start frame to L'th flow frame
-        flow_all_list = os.listdir(_flow_path)
-        flow_list = {'x':[], 'y':[]}
-
-        # separate x and y disparity images
-        for flow in flow_all_list:
-            if re.split('[_.]', flow)[1] == 'x':
-                flow_list['x'].append(flow)
-
-            elif re.split('[_.]', flow)[1] == 'y':
-                flow_list['y'].append(flow)
-
-        print(flow_list['x'])
-        _flow_x_list = sorted(flow_list['x'])
-        _flow_y_list = sorted(flow_list['y'])
-        print(_flow_x_list)
-
-        return _flow_x_list[_start_num: _start_num+self._L], _flow_y_list[_start_num: _start_num+self._L]
-    """
 
     def make_temporal_data(self, _flow_path, _action, _vnumber):
 
@@ -116,23 +91,34 @@ class MakePreprocessData():
             opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
 
             opt = np.dstack([opt_x, opt_y])
-            resized_opt = cv2.resize(opt, (224,224))
-            normalized_opt = resized_opt # /255           # TODO: check this operation is correct
 
             if idx == 0:
                 #stacked_opt = np.dstack([resized_opt_x, resized_opt_y])
-                stacked_opt = normalized_opt
+                stacked_opt = opt
                 continue
 
-            stacked_opt = np.dstack([stacked_opt, normalized_opt])
+            stacked_opt = np.dstack([stacked_opt, opt])
 
-        save_name = '%s-%05d.npy' % (_action, int(_vnumber))
-        save_path = os.path.join(temporal_save_path, save_name)
-        stacked_opt = stacked_opt.astype(np.uint8)
-        np.save(save_path ,stacked_opt)
-        # resized_opt = random_cropping(stacked_opt, 224)
+        stacked_opt = normalize(stacked_opt)
 
-        return 0 # resized_opt.astype(np.float)
+        save_name = '%s-%05d' % (_action, int(_vnumber))
+        resized_save_name = save_name + '-original.npy'
+        save_path = os.path.join(temporal_save_path, resized_save_name)
+
+        resize_opt = stacked_opt.resize(image_size)
+        np.save(save_path ,resize_opt)
+
+        for i in range(5):
+            cropped_img = random_cropping(stacked_opt, 224)
+            # flipped_img = horizontal_flip(cropped_img)
+
+            cropped_save_name = save_name + '-cropped-%d.npy' % i
+            cropped_save_path = os.path.join(temporal_save_path, cropped_save_name)
+            # flipped_save_path = save_name + '-flipped-%d.npy' % i
+
+            np.save(cropped_save_path, cropped_img)
+
+        return 0
 
     @staticmethod
     def make_label(_action):
@@ -149,15 +135,16 @@ class MakePreprocessData():
         for _frame_name in os.listdir(_frame_path):
             img_name = _frame_path + '/' + _frame_name
             img = cv2.imread(img_name)
+            img = normalize(img) # for normalize
 
             save_name = "%s-%05d" % (_action, int(_vnumber))
             save_name = os.path.join(spatial_save_path,  save_name)
 
             # save original image after resize
-            resized_img = cv2.resize(img, (224,224))
-            # resized_img = resized_img/255          # for normalize
+            resized_img = cv2.resize(img, image_size)
+            resized_img = resized_img/255          # for normalize
             resized_save_path = save_name + '-original.npy'
-            np.save(resized_save_path, resized_img.astype(np.uint8))
+            np.save(resized_save_path, resized_img)
 
             if img.shape[0] < image_size[0] or img.shape[1] < image_size[1]:
                 continue
@@ -173,8 +160,8 @@ class MakePreprocessData():
                 cropped_save_path = save_name + '-cropped-%d.npy' % i
                 flipped_save_path = save_name + '-flipped-%d.npy' % i
 
-                np.save(cropped_save_path, cropped_img.astype(np.uint8))
-                np.save(flipped_save_path, flipped_img.astype(np.uint8))
+                np.save(cropped_save_path, cropped_img)
+                np.save(flipped_save_path, flipped_img)
 
         return 0
 
@@ -191,7 +178,6 @@ class MakePreprocessData():
                 #run all preprocess procedure
                 self.make_spatial_data(frame_path, action, video_number)
                 self.make_temporal_data(flow_path, action, video_number)
-                # result_label = self.make_label(action)
 
 
 def random_cropping(_image, _size):
@@ -203,28 +189,9 @@ def random_cropping(_image, _size):
 def horizontal_flip(_image):
     return cv2.flip(_image,1)
 
-def normalize(_data_path):
-
-    data = []
-    for file_name in os.listdir(_data_path):
-        full_path = _data_path + '/' + file_name
-        dat = np.load(full_path)
-        data.append(dat)
-
-    mean = np.mean(data,axis=0)
-    std = np.std(data,axis=0)
-    del data
-
-    """
-    save_path = "/home/jm/Two-stream_data/npy/255_norm_flow/"
-    for file_name in os.listdir(_data_path):
-        full_path = _data_path + '/' + file_name
-        dat = np.load(full_path)
-        dat = dat/255
-        # dat.astype(np.uint8)
-        np.save(save_path+file_name, dat)
-        del dat
-    """
+def normalize(_data):
+    norm_img = _data / 255 - 0.5
+    return norm_img.astype(np.float32)
 
 if __name__ == '__main__':
 

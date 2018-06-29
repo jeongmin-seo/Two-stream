@@ -106,7 +106,7 @@ def stream_conv():
 
     # full6 layer
     model.add(Flatten())
-    model.add(Dense(4096))
+    model.add(Dense(2048))
     model.add(Dropout(0.5))  # TODO: modify dropout ratio
     """
     x = Flatten()(x)
@@ -115,12 +115,15 @@ def stream_conv():
     """
 
     # full7 layer
-    model.add(Dense(2048))
+    model.add(Dense(512))
     model.add(Dropout(0.5))  # TODO: modify dropout ratio
     """
     x = Dense(2048)(x)
     x = Dropout(0.5)(x)  # TODO: modify dropout ratio
     """
+
+    model.add(Dense(128))
+    model.add(Dropout(0.5))  # TODO: modify dropout ratio
 
     # softamx layer
     # model.add(Dense(101, activation='softmax'))  # ucf- 101
@@ -151,7 +154,8 @@ if __name__ == '__main__':
     root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
-    loader = hmdb51.Spatial(root)
+    batch_size = 128
+    loader = hmdb51.Spatial(root, batch_size=batch_size)
     loader.set_data_list(txt_root)
 
     print('complete setting data list')
@@ -197,11 +201,11 @@ if __name__ == '__main__':
     """
 
     print('complete')
-    sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    #spatial_opti = keras.optimizers.Adam(lr=1e-1, beta_1=0.99,
-    #                                 beta_2=0.99, epsilon=1e-08, decay=1e-4)
+    # sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    adam = keras.optimizers.Adam(lr=1e-3, beta_1=0.99,
+                                     beta_2=0.99, epsilon=1e-08, decay=1e-4)
 
-    spatial_stream.compile(optimizer=sgd,  # 'Adam',
+    spatial_stream.compile(optimizer=adam,
                         loss='categorical_crossentropy',
                         metrics=['accuracy'])
     print('complete network setting')
@@ -235,7 +239,7 @@ if __name__ == '__main__':
             spatial_stream.save(model_name)
             print("Saved model to disk")
     """
-    tmp_numiter = len(loader.get_data_list())/32
+    tmp_numiter = len(loader.get_data_list())/batch_size
     num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     tbCallBack.set_model(spatial_stream)
     for epoch in range(50000):
