@@ -7,26 +7,17 @@ from keras.layers import Flatten
 from keras.layers.convolutional import Conv2D
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
-from keras.layers import Merge, Input
 from keras.layers.core import Dropout
-from keras.preprocessing.image import ImageDataGenerator
 from keras.backend import set_session
-from keras.models import Model
-from keras.activations import softmax
-from keras.applications.vgg16 import VGG16
 
-from keras.models import model_from_json
 from keras.models import load_model
-from keras.models import save_model
-from keras.utils import np_utils
-import scipy.io as sio
+
 import numpy as np
 import keras.layers
 import os
 import progressbar
 
 # custom module
-import ucf101
 import hmdb51
 
 
@@ -225,7 +216,6 @@ if __name__ == '__main__':
         loss_list = []
         acc_list = []
         for i in progressbar.progressbar(range(num_iter)):
-        # while 1:
             batch_x, batch_y, eof = loader.next_batch()
             batch_log = spatial_stream.train_on_batch(batch_x, batch_y)
             loss_list.append(batch_log[0])

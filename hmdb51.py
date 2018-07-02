@@ -19,25 +19,27 @@ class Spatial():
         self._front_idx = 0
         self._end_idx = batch_size
 
-    def set_data_list(self, _data_txt, _shuffle=True):
+    def set_data_list(self, _data_txt, _shuffle=True, train_test_type='train'):
         cv_lists = self.data_dir_reader(_data_txt)
 
-        """
-        for file_name in os.listdir(self._root_dir):
-            for cv_split_name in cv_split_info:
-                if cv_split_name in file_name:
-                    self._data_list.append(file_name)
-        """
-        final_list = []
-        for cv_list in cv_lists:
-            file_name = cv_list[0]
-            label = cv_list[1]
-            final_list.append([file_name + "-original", label])
-            for i in range(5):
-                final_list.append([file_name + "-cropped-%d" % i, label])
-                final_list.append([file_name + "-flipped-%d" % i, label])
+        if train_test_type == 'train':
+            final_list = []
+            for cv_list in cv_lists:
+                file_name = cv_list[0]
+                label = cv_list[1]
+                final_list.append([file_name + "-original", label])
+                for i in range(5):
+                    final_list.append([file_name + "-cropped-%d" % i, label])
+                    final_list.append([file_name + "-flipped-%d" % i, label])
 
-        self._data_list = final_list
+            self._data_list = final_list
+
+        elif train_test_type == 'test':
+            self._data_list = cv_lists
+
+        else:
+            raise ValueError
+
 
         if _shuffle:
             random.shuffle(self._data_list)
@@ -155,8 +157,25 @@ class Spatial():
 
 class Temporal(Spatial):
 
-    def set_data_list(self, _data_txt, _shuffle=True):
-        self._data_list = self.data_dir_reader(_data_txt)
+    def set_data_list(self, _data_txt, _shuffle=True, train_test_type='train'):
+        cv_lists = self.data_dir_reader(_data_txt)
+
+        if train_test_type == 'train':
+            final_list = []
+            for cv_list in cv_lists:
+                file_name = cv_list[0]
+                label = cv_list[1]
+                final_list.append([file_name + "-original", label])
+                for i in range(5):
+                    final_list.append([file_name + "-cropped-%d" % i, label])
+
+            self._data_list = final_list
+
+        elif train_test_type == 'test':
+            self._data_list = cv_lists
+
+        else:
+            raise ValueError
 
         if _shuffle:
             random.shuffle(self._data_list)
