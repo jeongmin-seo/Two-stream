@@ -100,7 +100,7 @@ class Spatial():
         end_of_file = False
 
         #print(self._data_list[self._front_idx: self._end_idx])
-        for data_list in self._data_list[self._front_idx: self._end_idx]:
+        for data_list in self._data_list[self._front_idx: self._end_idx+1]:
             file_name = data_list[0]
             cur_label = data_list[1]
 
@@ -204,7 +204,7 @@ class Temporal(Spatial):
         end_of_file = False
 
         #print(self._data_list[self._front_idx: self._end_idx])
-        for data_list in self._data_list[self._front_idx: self._end_idx]:
+        for data_list in self._data_list[self._front_idx: self._end_idx +1]:
             file_name = data_list[0]
             cur_label = data_list[1]
 

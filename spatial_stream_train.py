@@ -39,8 +39,11 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # using pretrained model
-using_pretrained_model = False
+pretrained_model_name = '20_epoch_temporal_model.h5'
+using_pretrained_model = True
 save_model_path = '/home/jm/workspace/Two-stream/frame_model'
+num_epoch = 100
+batch_size = 64
 
 #########################################################
 #                   tensorboard setup                   #
@@ -69,73 +72,40 @@ def stream_conv():
     model = Sequential()
 
     # conv1 layer
-    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=(224, 224, 3)))
+    model.add(Conv2D(96, (7, 7), padding='same', strides=2, input_shape=(224, 224, 3), activation='relu'))
     model.add(BatchNormalization())
     model.add(MaxPooling2D((2,2), padding='same'))
-    """
-    x = Conv2D(96, (7, 7), padding='same', strides=2)(img_shape)
-    x = BatchNormalization()(x)
-    x = MaxPooling2D((2, 2), padding='same')(x)
-    """
 
     # conv2 layer
-    model.add(Conv2D(256, (5, 5), padding='same', strides=2))
+    model.add(Conv2D(256, (5, 5), padding='same', strides=2, activation='relu'))
     model.add(BatchNormalization())
     model.add(MaxPooling2D((2, 2), padding='same'))
-    """
-    x = Conv2D(256, (5, 5), padding='same', strides=2)(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling2D((2, 2), padding='same')(x)
-    """
 
     # conv3 layer
-    model.add(Conv2D(512, (3, 3), padding='same'))
-    # x = Conv2D(512, (3, 3), padding='same')(x)
+    model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
 
     # conv4 layer
-    model.add(Conv2D(512, (3, 3), padding='same'))
-    # x = Conv2D(512, (3, 3), padding='same')(x)
+    model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
 
     # conv5 layer
-    model.add(Conv2D(512, (3,3), padding='same'))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu'))
     model.add(MaxPooling2D((2, 2), padding='same'))
-    """
-    x = Conv2D(512, (3,3), padding='same')(x)
-    x = MaxPooling2D((2, 2), padding='same')(x)
-    """
 
     # full6 layer
     model.add(Flatten())
-    model.add(Dense(2048))
+    model.add(Dense(4096))
     model.add(Dropout(0.5))  # TODO: modify dropout ratio
-    """
-    x = Flatten()(x)
-    x = Dense(4096)(x)
-    x = Dropout(0.5)(x)  # TODO: modify dropout ratio
-    """
 
     # full7 layer
-    model.add(Dense(512))
+    model.add(Dense(2048))
     model.add(Dropout(0.5))  # TODO: modify dropout ratio
-    """
-    x = Dense(2048)(x)
-    x = Dropout(0.5)(x)  # TODO: modify dropout ratio
-    """
 
-    model.add(Dense(128))
-    model.add(Dropout(0.5))  # TODO: modify dropout ratio
 
     # softamx layer
     # model.add(Dense(101, activation='softmax'))  # ucf- 101
     model.add(Dense(51, activation='softmax'))
-    # model.add(Activation('softmax'))
-    # x = softmax()(x)
-
     model.summary()
-    """
-    network = Model(input_img, x)
-    network.summary()
-    """
+
     return model
 
 if __name__ == '__main__':
@@ -154,7 +124,6 @@ if __name__ == '__main__':
     root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
-    batch_size = 128
     loader = hmdb51.Spatial(root, batch_size=batch_size)
     loader.set_data_list(txt_root)
 
@@ -163,13 +132,18 @@ if __name__ == '__main__':
     #####################################################
     #     set convolution neural network structure      #
     #####################################################
-    print('set network')
-
-    spatial_stream = stream_conv()
     if using_pretrained_model:
-        spatial_stream = load_model("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
+        start_epoch_num = int(pretrained_model_name.split('_')[0]) + 1
+        load_model_path = os.path.join(save_model_path, pretrained_model_name)
+        spatial_stream = load_model(load_model_path)
         # spatial_stream.load_weights("/home/jm/workspace/Two-stream/hmdb_spatial_model.h5")
         print("weight loaded")
+
+    else:
+        start_epoch_num = 0
+        spatial_stream = stream_conv()
+        print('set network')
+
     """
     #weight_path = "/home/jm/workspace/Two-stream/pre-trained_model/model/vgg16_weights.h5"
     vgg16 = VGG16(weights='imagenet', include_top=False, input_shape=(224,224,3))
@@ -201,11 +175,11 @@ if __name__ == '__main__':
     """
 
     print('complete')
-    # sgd = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    adam = keras.optimizers.Adam(lr=1e-3, beta_1=0.99,
-                                     beta_2=0.99, epsilon=1e-08, decay=1e-4)
+    sgd = keras.optimizers.SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
+    # adam = keras.optimizers.Adam(lr=1e-3, beta_1=0.99,
+    #                                  beta_2=0.99, epsilon=1e-08, decay=1e-4)
 
-    spatial_stream.compile(optimizer=adam,
+    spatial_stream.compile(optimizer=sgd,
                         loss='categorical_crossentropy',
                         metrics=['accuracy'])
     print('complete network setting')
@@ -242,7 +216,7 @@ if __name__ == '__main__':
     tmp_numiter = len(loader.get_data_list())/batch_size
     num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     tbCallBack.set_model(spatial_stream)
-    for epoch in range(50000):
+    for epoch in range(start_epoch_num, start_epoch_num + num_epoch):
         print('Epoch', epoch)
 
         # reset batch
@@ -266,7 +240,7 @@ if __name__ == '__main__':
         print("loss:", avg_loss, "acc:", avg_acc)
         write_log(tbCallBack, ["train_loss", "train_acc"], [avg_loss, avg_acc], epoch)
 
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             if epoch == 0:
                 continue
 
