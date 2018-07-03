@@ -12,8 +12,8 @@ bgr_min_max = {'b':[255, 0],
 flow_min_max = {'x':[],
                 'y':[]}
 
-frames_root = '/home/jm/Two-stream_data/HMDB51/frames'
-flow_root = '/home/jm/Two-stream_data/HMDB51/flow'
+frames_root = '/home/jeongmin/workspace/data/HMDB51/frames'
+flow_root = '/home/jeongmin/workspace/data/HMDB51/flow'
 """
 action1 = {}
 for action in os.listdir(frames_root):

@@ -23,9 +23,9 @@ image_size = (224, 224)
 class MakePreprocessData():
 
     def __init__(self, _L): #, _bgr_min_max, _flow_min_max):
-        self._frames_root = '/home/jm/Two-stream_data/HMDB51/original/frames'
-        self._flow_root = '/home/jm/Two-stream_data/HMDB51/original/flow'
-        self._save_path = '/hdd1/HMDB51/preprocess' # '/home/jm/Two-stream_data/HMDB51/npy'
+        self._frames_root = '/home/jeongmin/workspace/data/HMDB51/frames'
+        self._flow_root = '/home/jeongmin/workspace/data/HMDB51/flow'
+        self._save_path = '/home/jeongmin/workspace/data/HMDB51/preprocess' # '/home/jm/Two-stream_data/HMDB51/npy'
         self._L = _L
 
     def sampling_stack_frame(self, _flow_path):
@@ -150,7 +150,6 @@ class MakePreprocessData():
 
             # save original image after resize
             resized_img = cv2.resize(img, image_size)
-            resized_img = resized_img/255          # for normalize
             resized_save_path = save_name + '-original.npy'
             np.save(resized_save_path, resized_img)
 
@@ -194,12 +193,15 @@ def random_cropping(_image, _size):
 
     return _image[left:left+_size, top:top+_size]
 
+
 def horizontal_flip(_image):
     return cv2.flip(_image,1)
 
+
 def normalize(_data):
-    norm_img = _data / 255 - 0.5
+    norm_img = 2 * (_data /255) - 1
     return norm_img.astype(np.float32)
+
 
 if __name__ == '__main__':
 
