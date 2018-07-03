@@ -19,7 +19,7 @@ class Spatial():
         self._front_idx = 0
         self._end_idx = batch_size
 
-    def set_data_list(self, _data_txt, _shuffle=True, train_test_type='train'):
+    def set_data_list(self, _data_txt, train_test_type='train', _shuffle=True):
         cv_lists = self.data_dir_reader(_data_txt)
 
         if train_test_type == 'train':
@@ -35,11 +35,16 @@ class Spatial():
             self._data_list = final_list
 
         elif train_test_type == 'test':
-            self._data_list = cv_lists
+            final_list = []
+            for cv_list in cv_lists:
+                file_name = cv_list[0]
+                label = cv_list[1]
+                final_list.append([file_name + "-original", label])
+
+            self._data_list = final_list
 
         else:
             raise ValueError
-
 
         if _shuffle:
             random.shuffle(self._data_list)
@@ -101,13 +106,12 @@ class Spatial():
         label = []
         end_of_file = False
 
-        #print(self._data_list[self._front_idx: self._end_idx])
         for data_list in self._data_list[self._front_idx: self._end_idx+1]:
             file_name = data_list[0]
             cur_label = data_list[1]
 
             load_file_name = file_name + '.npy'
-            file_root = os.path.join(self._root_dir + '/' + load_file_name)
+            file_root = os.path.join(self._root_dir, load_file_name)
 
             try:
                 dat = np.load(file_root)
@@ -157,7 +161,7 @@ class Spatial():
 
 class Temporal(Spatial):
 
-    def set_data_list(self, _data_txt, _shuffle=True, train_test_type='train'):
+    def set_data_list(self, _data_txt, train_test_type='train', _shuffle=True):
         cv_lists = self.data_dir_reader(_data_txt)
 
         if train_test_type == 'train':
@@ -172,7 +176,13 @@ class Temporal(Spatial):
             self._data_list = final_list
 
         elif train_test_type == 'test':
-            self._data_list = cv_lists
+            final_list = []
+            for cv_list in cv_lists:
+                file_name = cv_list[0]
+                label = cv_list[1]
+                final_list.append([file_name + "-original", label])
+
+            self._data_list = final_list
 
         else:
             raise ValueError
@@ -242,6 +252,7 @@ class Temporal(Spatial):
                 # TODO: make label using video_name
 
             except FileNotFoundError:
+                print('File Not Found')
                 continue
 
         self._front_idx += self._batch_size

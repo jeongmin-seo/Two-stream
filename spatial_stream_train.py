@@ -99,6 +99,7 @@ def stream_conv():
 
     return model
 
+
 if __name__ == '__main__':
 
     #####################################################
@@ -116,7 +117,7 @@ if __name__ == '__main__':
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
     loader = hmdb51.Spatial(root, batch_size=batch_size)
-    loader.set_data_list(txt_root)
+    loader.set_data_list(txt_root, train_test_type='train')
 
     print('complete setting data list')
 
@@ -167,43 +168,11 @@ if __name__ == '__main__':
 
     print('complete')
     sgd = keras.optimizers.SGD(lr=0.001, decay=1e-6, momentum=0.9, nesterov=True)
-    # adam = keras.optimizers.Adam(lr=1e-3, beta_1=0.99,
-    #                                  beta_2=0.99, epsilon=1e-08, decay=1e-4)
-
     spatial_stream.compile(optimizer=sgd,
-                        loss='categorical_crossentropy',
-                        metrics=['accuracy'])
+                           loss='categorical_crossentropy',
+                           metrics=['accuracy'])
     print('complete network setting')
 
-
-    """
-    for e in range(50000):
-        print('Epoch', e)
-        batches = 0
-        for x_batch, y_batch in gen:
-            spatial_stream.fit(x_batch, y_batch)
-            batches += 1
-            if batches >= len(x) / 128:
-                # we need to break the loop by hand because
-                # the generator loops indefinitely
-                break
-
-        if e%100 == 0:
-
-            if e == 0:
-                continue
-
-            model_json = spatial_stream.to_json()
-            json_model_name = "%d_epoch_model.json" %e
-            with open(json_model_name, "w") as json_file:
-                json_file.write(model_json)
-
-            weight_name = "%d_epoch_weight.h5" %e
-            model_name = "%d_epoch_model.h5" %e
-            spatial_stream.save_weights(weight_name)
-            spatial_stream.save(model_name)
-            print("Saved model to disk")
-    """
     tmp_numiter = len(loader.get_data_list())/batch_size
     num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     tbCallBack.set_model(spatial_stream)
@@ -212,7 +181,6 @@ if __name__ == '__main__':
 
         # reset batch
         loader.shuffle()
-        # loader.get_data_list()
         loss_list = []
         acc_list = []
         for i in progressbar.progressbar(range(num_iter)):

@@ -142,11 +142,11 @@ if __name__ == '__main__':
     #####################################################
 
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/npy/flow'
-    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1'
+    root = '/home/jeongmin/workspace/data/HMDB51/preprocess/flow'
+    txt_root = '/home/jeongmin/workspace/data/HMDB51/train_split1.txt'
 
     loader = hmdb51.Temporal(root, batch_size=batch_size)
-    loader.set_data_list(txt_root)
+    loader.set_data_list(txt_root, train_test_type='train')
 
     print('complete setting data list')
 
@@ -194,7 +194,6 @@ if __name__ == '__main__':
                         metrics=['accuracy'])
     print('complete network setting')
 
-
     tmp_numiter = len(loader.get_data_list())/batch_size
     num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     tbCallBack.set_model(temporal_stream)
@@ -223,7 +222,6 @@ if __name__ == '__main__':
         avg_acc = np.mean(acc_list)
         print("loss:", avg_loss, "acc:", avg_acc)
         write_log(tbCallBack, ["train_loss", "train_acc"], [avg_loss, avg_acc], epoch)
-
 
         if epoch % 10 == 0:
             if epoch == 0:
