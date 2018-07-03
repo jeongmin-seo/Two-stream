@@ -89,8 +89,10 @@ class MakePreprocessData():
 
             opt_x = cv2.imread(x_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_x
             opt_y = cv2.imread(y_name, cv2.IMREAD_GRAYSCALE) #- opt_mean_y
-            resize_opt_x = opt_x.resize(image_size)
-            resize_opt_y = opt_y.resize(image_size)
+            resize_opt_x = cv2.resize(opt_x, image_size)
+            resize_opt_y = cv2.resize(opt_y, image_size)
+            # resize_opt_x = opt_x.resize(image_size)
+            # resize_opt_y = opt_y.resize(image_size)
 
             opt = np.dstack([opt_x, opt_y])
             resize_opt = np.dstack([resize_opt_x, resize_opt_y])
@@ -104,29 +106,29 @@ class MakePreprocessData():
             stacked_opt = np.dstack([stacked_opt, opt])
             resize_stacked_opt = np.dstack([resize_stacked_opt, resize_opt])
 
-            stacked_opt = normalize(stacked_opt)
-            resize_stacked_opt = normalize(resize_stacked_opt)
+        stacked_opt = normalize(stacked_opt)
+        resize_stacked_opt = normalize(resize_stacked_opt)
 
-            save_name = '%s-%05d' % (_action, int(_vnumber))
-            resized_save_name = save_name + '-original.npy'
-            save_path = os.path.join(temporal_save_path, resized_save_name)
+        save_name = '%s-%05d' % (_action, int(_vnumber))
+        resized_save_name = save_name + '-original.npy'
+        save_path = os.path.join(temporal_save_path, resized_save_name)
 
-            np.save(save_path ,resize_stacked_opt)
+        np.save(save_path ,resize_stacked_opt)
 
-            if stacked_opt.shape[0] <= image_size[0] or stacked_opt.shape[1] <= image_size[1]:
-                continue
-
-            for i in range(5):
-                cropped_img = random_cropping(stacked_opt, 224)
-                # flipped_img = horizontal_flip(cropped_img)
-
-                cropped_save_name = save_name + '-cropped-%d.npy' % i
-                cropped_save_path = os.path.join(temporal_save_path, cropped_save_name)
-                # flipped_save_path = save_name + '-flipped-%d.npy' % i
-
-                np.save(cropped_save_path, cropped_img)
-
+        if stacked_opt.shape[0] <= image_size[0] or stacked_opt.shape[1] <= image_size[1]:
             return 0
+
+        for i in range(5):
+            cropped_img = random_cropping(stacked_opt, 224)
+            # flipped_img = horizontal_flip(cropped_img)
+
+            cropped_save_name = save_name + '-cropped-%d.npy' % i
+            cropped_save_path = os.path.join(temporal_save_path, cropped_save_name)
+            # flipped_save_path = save_name + '-flipped-%d.npy' % i
+
+            np.save(cropped_save_path, cropped_img)
+
+        return 0
 
     @staticmethod
     def make_label(_action):
