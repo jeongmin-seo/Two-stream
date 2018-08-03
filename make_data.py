@@ -52,8 +52,8 @@ class MakePreprocessData():
         result_dict['y'].sort()
         return result_dict
 
-    def make_temporal_data(self, _flow_path, _action_name, _video_number):
-        temporal_save_path = os.path.join(self._save_path, 'flow')
+    def make_temporal_data(self, _flow_path, _action_name, _video_number, _save_path):
+        temporal_save_path = _save_path
         flow_list = self.split_x_y_disparity(_flow_path)
         numerator = len(flow_list['x']) - self._L + 1
         interval = int(numerator/self._Nframe)
@@ -110,8 +110,8 @@ class MakePreprocessData():
 
         pass
 
-    def make_spatial_data(self, _frame_path, _action_name, _video_number):
-        spatial_save_path = os.path.join(self._save_path, 'frames')
+    def make_spatial_data(self, _frame_path, _action_name, _video_number, _save_path):
+        spatial_save_path = _save_path
         frame_list = os.listdir(_frame_path)
         interval = int(len(frame_list) / self._Nframe)
 
@@ -159,11 +159,15 @@ class MakePreprocessData():
 
             for video_number in os.listdir(action_flow_path):
                 frame_path = os.path.join(action_frame_path, video_number)
+                frame_save_path = os.path.join(frame_save_root, "%s-%05d" %(action, int(video_number)))
+                os.makedirs(frame_save_path)
                 # flow_path = os.path.join(action_flow_path, video_number)
+                flow_save_path = os.path.join(flow_save_root, '%s-%05d' %(action, int(video_number)))
+                os.makedirs(flow_save_path)
 
                 # run all preprocess procedure
-                self.make_spatial_data(frame_path, action, video_number)
-                # self.make_temporal_data(flow_path, action, video_number)
+                self.make_spatial_data(frame_path, action, video_number, frame_save_path)
+                # self.make_temporal_data(flow_path, action, video_number, flow_save_path)
 
 
 if __name__ == '__main__':
