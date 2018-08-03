@@ -10,7 +10,7 @@ import cv2
 from keras.utils import to_categorical
 li = []
 
-class Spatial:
+class DataLoader:
     def __init__(self, root_dir, batch_size=32):
         self._train_data_list = []
         self._test_data = {}
