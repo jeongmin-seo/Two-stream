@@ -10,43 +10,51 @@ import cv2
 from keras.utils import to_categorical
 li = []
 
-class Spatial():
+class Spatial:
     def __init__(self, root_dir, batch_size=32):
-        self._data_list = []
+        self._train_data_list = []
+        self._test_data = {}
+        self._test_list = []
         self._root_dir = root_dir   # data root
         self._batch_size = batch_size
         self._front_idx = 0
         self._end_idx = batch_size
 
-    def set_data_list(self, _data_txt, train_test_type='train', _shuffle=True):
+    def set_data_list(self, _data_txt, train_test_type='train'):
         cv_lists = self.data_dir_reader(_data_txt)
 
         if train_test_type == 'train':
             final_list = []
             for cv_list in cv_lists:
-                file_name = cv_list[0]
+                video_name = cv_list[0]
                 label = cv_list[1]
-                final_list.append([file_name + "-original", label])
-                for i in range(5):
-                    final_list.append([file_name + "-cropped-%d" % i, label])
-                    final_list.append([file_name + "-flipped-%d" % i, label])
 
-            self._data_list = final_list
+                dir_path = os.path.join(self._root_dir, video_name)
+                for file_list in os.listdir(dir_path):
+                    final_list.append([file_list, label])
+
+            self._train_data_list = final_list
 
         elif train_test_type == 'test':
-            final_list = []
-            for cv_list in cv_lists:
-                file_name = cv_list[0]
-                label = cv_list[1]
-                final_list.append([file_name + "-original", label])
 
-            self._data_list = final_list
+            for cv_list in cv_lists:
+                video_name = cv_list[0]
+                label = cv_list[1]
+
+                data_list = []
+                dir_path = os.path.join(self._root_dir, video_name)
+                for file_list in os.listdir(dir_path):
+                    if not(re.split('[-.]+', file_list)[-2] == 'original'):
+                        continue
+
+                    data_list.append([file_list, label])
+
+                self._test_data[video_name] = data_list
 
         else:
+            print("input correct train_test_type argm")
             raise ValueError
 
-        if _shuffle:
-            random.shuffle(self._data_list)
 
     @staticmethod
     def data_dir_reader(_txt_path):
@@ -63,18 +71,52 @@ class Spatial():
 
         return tmp
 
-    def next_batch(self):
+    def next_test_video(self):
+        data = []
+        label = []
+        end_of_file = False
+
+        test_data_list = self._test_data[self._test_list.pop()]
+        for data_list in test_data_list:
+            file_name = data_list[0]
+            cur_label = data_list[1]
+
+            split_file_name = re.split('[-.]+', file_name)
+            file_dir_name = split_file_name[0] + '-' + split_file_name[1]
+            file_root = os.path.join(self._root_dir, file_dir_name, file_name)
+
+            try:
+                dat = np.load(file_root)
+                data.append(dat)
+                # label_name = data_list.split('-')[0]
+
+                # data.append(self.make_input_shape(file_list, file_root))
+                # li.append(label_name)
+                onehot_label = to_categorical(cur_label, num_classes=51)
+                label.append(onehot_label)
+                # TODO: make label using video_name
+
+            except FileNotFoundError:
+                continue
+
+        if not self._test_list:
+            end_of_file = True
+
+        return np.asarray(data), np.asarray(label), end_of_file
+
+    def next_train_batch(self):
 
         data = []
         label = []
         end_of_file = False
 
-        for data_list in self._data_list[self._front_idx: self._end_idx+1]:
+        for data_list in self._train_data_list[self._front_idx: self._end_idx]:
             file_name = data_list[0]
             cur_label = data_list[1]
 
-            load_file_name = file_name + '.npy'
-            file_root = os.path.join(self._root_dir, load_file_name)
+            split_file_name = re.split('[-.]+', file_name)
+            file_dir_name = split_file_name[0] + '-' + split_file_name[1]
+            file_root = os.path.join(self._root_dir, file_dir_name, file_name)
 
             try:
                 dat = np.load(file_root)
@@ -93,10 +135,10 @@ class Spatial():
         self._front_idx += self._batch_size
         self._end_idx += self._batch_size
 
-        if self._end_idx > len(self._data_list):
-            self._end_idx = len(self._data_list)
+        if self._end_idx > len(self._train_data_list):
+            self._end_idx = len(self._train_data_list)
 
-        if self._front_idx > len(self._data_list):
+        if self._front_idx > len(self._train_data_list):
             end_of_file = True
             self._front_idx = 0
             self._end_idx = self._batch_size
@@ -109,14 +151,60 @@ class Spatial():
 
         return np.asarray(data), np.asarray(label), end_of_file
 
-    def shuffle(self):
+    def train_data_shuffle(self):
 
-        if not self._data_list:
+        if not self._train_data_list:
             print('Data list is None')
-        random.shuffle(self._data_list)
+            raise IndexError
+
+        random.shuffle(self._train_data_list)
         self._front_idx = 0
         self._end_idx = self._batch_size
 
-    def get_data_list(self):
+    def set_test_video_list(self):
+        self._test_list = list(self._test_data.keys())
 
-        return self._data_list
+    def get_train_data_list(self):
+        return self._train_data_list
+
+    def get_test_data_list(self):
+        return self._test_list
+
+if __name__=='__main__':
+
+    # HMDB-51 data loader
+    root = '/home/jm/hdd/preprocess/frames'
+    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
+
+    train_loader = Spatial(root)
+    train_loader.set_data_list(txt_root, 'train')
+
+    n = 0
+    for epoch in range(1):
+        train_loader.train_data_shuffle()
+        while True:
+            x, y, eof = train_loader.next_train_batch()
+
+            print(x.shape)
+            n += 1
+
+            if eof:
+                break
+
+    print("*"*50)
+    txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
+    test_loader = Spatial(root)
+    test_loader.set_data_list(txt_root, 'test')
+
+    n=0
+    for epoch in range(5):
+        test_loader.set_test_video_list()
+        while True:
+
+            x, y, eof = test_loader.next_test_video()
+
+            print(x.shape)
+            n += 1
+
+            if eof:
+                break

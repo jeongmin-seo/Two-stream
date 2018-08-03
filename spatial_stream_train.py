@@ -12,6 +12,8 @@ from keras.backend import set_session
 
 from keras.models import load_model
 
+# import tensorflow as tf
+from sklearn.metrics import log_loss
 import numpy as np
 import keras.layers
 import os
@@ -19,6 +21,7 @@ import progressbar
 
 # custom module
 import hmdb51
+import data_loader
 
 
 # set the quantity of GPU memory consumed
@@ -31,10 +34,10 @@ set_session(sess)
 
 # using pretrained model
 pretrained_model_name = '20_epoch_temporal_model.h5'
-using_pretrained_model = True
+using_pretrained_model = False
 save_model_path = '/home/jm/workspace/Two-stream/frame_model'
-num_epoch = 100
-batch_size = 64
+num_epoch = 1# 100
+batch_size = 128
 
 #########################################################
 #                   tensorboard setup                   #
@@ -100,6 +103,43 @@ def stream_conv():
     return model
 
 
+
+def vallidation_1epoch(_model, _loader):
+    loss_list = []
+    # acc_list = []
+    correct = 0
+    _loader.set_test_video_list()
+
+    for i in progressbar.progressbar(range(len(_loader.get_test_data_list()))):
+        _batch_x, _batch_y, eof = _loader.next_test_video()
+        result = _model.predict_on_batch(_batch_x)
+
+        label = np.sum(_batch_y,axis=0)
+        predict = np.sum(result, axis=0)
+        loss_list.append(float(log_loss(label, predict)))
+        if label.argmax() == predict.argmax():
+            correct += 1
+        # keras.metrics.categorical_crossentropy()
+
+    return float(correct/len(loss_list)), np.asarray(loss_list).mean()
+
+def train_1epoch(_model, _loader, _num_iter):
+    # reset batch
+    _loader.train_data_shuffle()
+    loss_list = []
+    acc_list = []
+    for i in progressbar.progressbar(range(_num_iter)):
+        _batch_x, _batch_y, _eof = _loader.next_train_batch()
+        _batch_log = _model.train_on_batch(_batch_x, _batch_y)
+        loss_list.append(_batch_log[0])
+        acc_list.append(_batch_log[1])
+
+        del _batch_x, _batch_y
+        if _eof:
+            break
+
+    return np.mean(acc_list), np.mean(loss_list)
+
 if __name__ == '__main__':
 
     #####################################################
@@ -113,11 +153,15 @@ if __name__ == '__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/npy/frame'
-    txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
+    root = '/home/jm/hdd/preprocess/frames'
+    train_txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
+    test_txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
 
-    loader = hmdb51.Spatial(root, batch_size=batch_size)
-    loader.set_data_list(txt_root, train_test_type='train')
+    train_loader = data_loader.Spatial(root, batch_size=batch_size)
+    train_loader.set_data_list(train_txt_root, train_test_type='train')
+
+    test_loader = data_loader.Spatial(root)
+    test_loader.set_data_list(test_txt_root, train_test_type='test')
 
     print('complete setting data list')
 
@@ -173,18 +217,19 @@ if __name__ == '__main__':
                            metrics=['accuracy'])
     print('complete network setting')
 
-    tmp_numiter = len(loader.get_data_list())/batch_size
+    tmp_numiter = len(train_loader.get_train_data_list())/batch_size
     num_iter = int(tmp_numiter)+1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     tbCallBack.set_model(spatial_stream)
     for epoch in range(start_epoch_num, start_epoch_num + num_epoch):
         print('Epoch', epoch)
 
+        """
         # reset batch
-        loader.shuffle()
+        train_loader.train_data_shuffle()
         loss_list = []
         acc_list = []
         for i in progressbar.progressbar(range(num_iter)):
-            batch_x, batch_y, eof = loader.next_batch()
+            batch_x, batch_y, eof = train_loader.next_train_batch()
             batch_log = spatial_stream.train_on_batch(batch_x, batch_y)
             loss_list.append(batch_log[0])
             acc_list.append(batch_log[1])
@@ -195,9 +240,16 @@ if __name__ == '__main__':
 
         avg_loss = np.mean(loss_list)
         avg_acc = np.mean(acc_list)
-        print("loss:", avg_loss, "acc:", avg_acc)
-        write_log(tbCallBack, ["train_loss", "train_acc"], [avg_loss, avg_acc], epoch)
+        """
+        train_acc, train_loss = train_1epoch(spatial_stream, train_loader, num_iter)
+        print("train_loss:", train_loss, "train_acc:", train_acc)
+        val_acc, val_loss = vallidation_1epoch(spatial_stream, test_loader)
+        print("val_loss:", val_loss, "val_acc:", val_acc)
+        write_log(tbCallBack, ["train_loss", "train_acc", 'validation_loss', 'validation_acc'],
+                  [train_loss, train_acc, val_loss, val_acc], epoch)
 
+
+        """
         if epoch % 10 == 0:
             if epoch == 0:
                 continue
@@ -205,4 +257,4 @@ if __name__ == '__main__':
             model_name = "./frame_model/%d_epoch_temporal_model.h5" % epoch
             spatial_stream.save(model_name)
             print("Saved model to disk")
-
+        """

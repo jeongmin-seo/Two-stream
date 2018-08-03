@@ -17,6 +17,7 @@ import progressbar
 
 # custom module
 import hmdb51
+import data_loader
 
 # set the quantity of GPU memory consumed
 import tensorflow as tf
