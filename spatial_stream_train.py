@@ -23,6 +23,8 @@ import progressbar
 import hmdb51
 import data_loader
 
+import time
+
 
 # set the quantity of GPU memory consumed
 import tensorflow as tf
@@ -102,9 +104,16 @@ def stream_conv():
 
     return model
 
+def video_level_acc(_y_pred, _y_true):
+    accuracy = keras.metrics.categorical_accuracy(_y_true, _y_pred)
+    return keras.backend.mean(accuracy, axis=0)
 
+def video_level_loss(_y_pred, _y_true):
+    with tf.Session() as sess:
+        loss = tf.losses.log_loss(_y_true, _y_pred).eval(session=sess)
+    return loss
 
-def vallidation_1epoch(_model, _loader):
+def validation_1epoch(_model, _loader):
     loss_list = []
     # acc_list = []
     correct = 0
@@ -116,12 +125,13 @@ def vallidation_1epoch(_model, _loader):
 
         label = np.sum(_batch_y,axis=0)
         predict = np.sum(result, axis=0)
-        loss_list.append(float(log_loss(label, predict)))
+        loss_list.append(video_level_loss(result, _batch_y))
+
         if label.argmax() == predict.argmax():
             correct += 1
-        # keras.metrics.categorical_crossentropy()
 
     return float(correct/len(loss_list)), np.asarray(loss_list).mean()
+
 
 def train_1epoch(_model, _loader, _num_iter):
     # reset batch
@@ -227,7 +237,7 @@ if __name__ == '__main__':
         train_acc, train_loss = train_1epoch(spatial_stream, train_loader, num_iter)
         print("train_loss:", train_loss, "train_acc:", train_acc)
 
-        val_acc, val_loss = vallidation_1epoch(spatial_stream, test_loader)
+        val_acc, val_loss = validation_1epoch(spatial_stream, test_loader)
         print("val_loss:", val_loss, "val_acc:", val_acc)
 
         write_log(tbCallBack, ["train_loss", "train_acc", 'validation_loss', 'validation_acc'],
