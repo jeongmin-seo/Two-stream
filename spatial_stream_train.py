@@ -29,7 +29,7 @@ import time
 # set the quantity of GPU memory consumed
 import tensorflow as tf
 config = tf.ConfigProto()
-# config.gpu_options.per_process_gpu_memory_fraction = 0.85
+# config.gpu_options.per_process_gpu_memory_fraction = 0.7
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 set_session(sess)
@@ -37,8 +37,8 @@ set_session(sess)
 # using pretrained model
 pretrained_model_name = '20_epoch_temporal_model.h5'
 using_pretrained_model = False
-save_model_path = '/home/jm/workspace/Two-stream/frame_model'
-num_epoch = 1# 100
+save_model_path = '/home/mlpa/Workspace/github/Two-stream/frame_model'
+num_epoch = 100
 batch_size = 128
 
 #########################################################
@@ -104,14 +104,23 @@ def stream_conv():
 
     return model
 
+
 def video_level_acc(_y_pred, _y_true):
     accuracy = keras.metrics.categorical_accuracy(_y_true, _y_pred)
     return keras.backend.mean(accuracy, axis=0)
 
+
 def video_level_loss(_y_pred, _y_true):
-    with tf.Session() as sess:
-        loss = tf.losses.log_loss(_y_true, _y_pred).eval(session=sess)
+    _y_true = np.asarray(_y_true, dtype=np.float64)
+    _y_pred = np.asarray(_y_pred, dtype=np.float64)
+    loss = log_loss(_y_true, _y_pred)
+    # loss = tf.losses.log_loss(_y_true, _y_pred).eval(session=sess)
+    # _y_pred = tf.convert_to_tensor(_y_pred, dtype='float32')
+    # _y_true = tf.convert_to_tensor(_y_true, dtype='float32')
+    # loss = keras.losses.categorical_crossentropy(_y_true, _y_pred)
+    # sess.close()
     return loss
+
 
 def validation_1epoch(_model, _loader):
     loss_list = []
@@ -123,7 +132,7 @@ def validation_1epoch(_model, _loader):
         _batch_x, _batch_y, eof = _loader.next_test_video()
         result = _model.predict_on_batch(_batch_x)
 
-        label = np.sum(_batch_y,axis=0)
+        label = np.sum(_batch_y, axis=0)
         predict = np.sum(result, axis=0)
         loss_list.append(video_level_loss(result, _batch_y))
 
@@ -163,15 +172,15 @@ if __name__ == '__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/jm/hdd/preprocess/frames'
-    train_txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
-    test_txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
+    root = '/home/mlpa/ssd/HMDB51/preprocess/frames'
+    train_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/train_split1.txt'
+    test_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/test_split1.txt'
 
     train_loader = data_loader.DataLoader(root, batch_size=batch_size)
     train_loader.set_data_list(train_txt_root, train_test_type='train')
 
     train_val_loader = data_loader.DataLoader(root, batch_size=batch_size)
-    train_val_loader.set_data_list(train_txt_root, train_test_type='train')
+    train_val_loader.set_data_list(train_txt_root, train_test_type='test')
 
     test_loader = data_loader.DataLoader(root)
     test_loader.set_data_list(test_txt_root, train_test_type='test')
@@ -240,7 +249,7 @@ if __name__ == '__main__':
         train_acc, train_loss = train_1epoch(spatial_stream, train_loader, num_iter)
         print("train_loss:", train_loss, "train_acc:", train_acc)
 
-        tr_val_acc, tr_val_loss = validation_1epoch(spatial_stream, test_loader)
+        tr_val_acc, tr_val_loss = validation_1epoch(spatial_stream, train_val_loader)
         print("tr_val_loss:", tr_val_loss, "tr_val_acc:", tr_val_acc)
 
         val_acc, val_loss = validation_1epoch(spatial_stream, test_loader)
