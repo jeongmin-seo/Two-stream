@@ -5,11 +5,11 @@ import os
 import re
 import numpy as np
 import random
-import cv2
-import time
+
 
 from keras.utils import to_categorical
 li = []
+
 
 class DataLoader:
     def __init__(self, root_dir, batch_size=32):
@@ -55,7 +55,6 @@ class DataLoader:
         else:
             print("input correct train_test_type argm")
             raise ValueError
-
 
     @staticmethod
     def data_dir_reader(_txt_path):
@@ -164,7 +163,7 @@ class DataLoader:
     def get_test_data_list(self):
         return self._test_list
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     # HMDB-51 data loader
     root = '/home/jm/hdd/preprocess/frames'

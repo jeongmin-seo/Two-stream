@@ -4,8 +4,7 @@
 from keras.models import load_model
 import os
 import progressbar
-# from sklearn.metrics import accuracy_score, precision_score, recall_score
-# custom module
+import data_loader
 import hmdb51
 
 # project setting
@@ -19,6 +18,8 @@ dataRoot = os.path.join(root, 'npy')
 dataPath = os.path.join(dataRoot, eval_type)
 splitPath = os.path.join(root, 'test_split1.txt')
 batch_size = 16
+
+# TODO: extract Class AP information
 
 
 def load_eval_model(_project_path, _eval_type, _n_epoch):
@@ -45,16 +46,13 @@ if __name__ == '__main__':
     model = load_eval_model(projectPath, eval_type, nEpoch)
 
     # HMDB-51 data loader
-    if eval_type == 'frame':
-        loader = hmdb51.Spatial(dataPath, batch_size=16)
-    elif eval_type == 'flow':
-        loader = hmdb51.Temporal(dataPath, batch_size=16)
+    if eval_type == 'frame' or 'flow':
+        loader = data_loader.DataLoader(root, batch_size=batch_size)
+        loader.set_data_list(splitPath, train_test_type='test')
     else:
         #TODO: error exception
         pass
 
-    loader.set_data_list(splitPath, train_test_type='test')
-    print('complete setting data list')
 
     prediction = []
     target = []
@@ -63,13 +61,12 @@ if __name__ == '__main__':
     # rec = []
     all = 0
     cor = 0
-    tmp_numiter = len(loader.get_data_list()) / batch_size
+    tmp_numiter = len(loader.get_test_data_list()) / batch_size
     num_iter = int(tmp_numiter) + 1 if tmp_numiter - int(tmp_numiter) > 0 else int(tmp_numiter)
     for i in progressbar.progressbar(range(num_iter)):
 
-        batch_x, batch_y, eof = loader.next_batch()
+        batch_x, batch_y, eof = loader.next_test_video()
         predict = model.predict_on_batch(batch_x)
-        # predict = model.test_on_batch(batch_x, batch_y)
         y_true = []
         y_pred = []
 
