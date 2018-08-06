@@ -21,7 +21,7 @@ set_session(sess)
 # using pretrained model
 pretrained_model_name = '20_epoch_temporal_model.h5'
 using_pretrained_model = False
-save_model_path = '/home/mlpa/Workspace/github/Two-stream/frame_model'
+save_model_path = '/home/jm/workspace/Two-stream/frame_model'
 num_epoch = 100
 batch_size = 128
 
@@ -46,9 +46,9 @@ if __name__ == '__main__':
     loader.set_data_list(txt_root)
     """
     # HMDB-51 data loader
-    root = '/home/mlpa/ssd/HMDB51/preprocess/frames'
-    train_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/train_split1.txt'
-    test_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/test_split1.txt'
+    root = '/home/jm/Two-stream_data/HMDB51/preprocess/frames'
+    train_txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
+    test_txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
 
     train_loader = data_loader.DataLoader(root, batch_size=batch_size)
     train_loader.set_data_list(train_txt_root, train_test_type='train')
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     print('complete setting data list')
 
-    spatial = network.Spatial
+    spatial = network.Spatial()
     #####################################################
     #     set convolution neural network structure      #
     #####################################################
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     else:
         start_epoch_num = 0
-        spatial_stream = network.Spatial.basic()
+        spatial_stream = spatial.basic()
         print('set network')
 
     print('complete')

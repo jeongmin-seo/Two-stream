@@ -82,8 +82,8 @@ if __name__ == '__main__':
     #####################################################
     # HMDB-51 data loader
     root = '/home/jeongmin/workspace/data/HMDB51/preprocess/flow'
-    train_txt_root = '/home/jeongmin/workspace/data/HMDB51/train_split1.txt'
-    test_txt_root = '/home/jeongmin/workspace/data/HMDB51/test_split1.txt'
+    train_txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
+    test_txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
 
     train_loader = data_loader.DataLoader(root, batch_size=batch_size)
     train_loader.set_data_list(train_txt_root, train_test_type='train')
@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     print('complete setting data list')
 
-    temporal = network.Temporal
+    temporal = network.Temporal()
     #####################################################
     #     set convolution neural network structure      #
     #####################################################
