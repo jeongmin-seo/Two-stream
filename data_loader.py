@@ -6,6 +6,7 @@ import re
 import numpy as np
 import random
 import cv2
+import time
 
 from keras.utils import to_categorical
 li = []
@@ -88,10 +89,6 @@ class DataLoader:
             try:
                 dat = np.load(file_root)
                 data.append(dat)
-                # label_name = data_list.split('-')[0]
-
-                # data.append(self.make_input_shape(file_list, file_root))
-                # li.append(label_name)
                 onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
@@ -121,10 +118,7 @@ class DataLoader:
             try:
                 dat = np.load(file_root)
                 data.append(dat)
-                # label_name = data_list.split('-')[0]
 
-                # data.append(self.make_input_shape(file_list, file_root))
-                # li.append(label_name)
                 onehot_label = to_categorical(cur_label, num_classes=51)
                 label.append(onehot_label)
                 # TODO: make label using video_name
@@ -176,7 +170,7 @@ if __name__=='__main__':
     root = '/home/jm/hdd/preprocess/frames'
     txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
 
-    train_loader = Spatial(root)
+    train_loader = DataLoader(root)
     train_loader.set_data_list(txt_root, 'train')
 
     n = 0
@@ -193,7 +187,7 @@ if __name__=='__main__':
 
     print("*"*50)
     txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
-    test_loader = Spatial(root)
+    test_loader = DataLoader(root)
     test_loader.set_data_list(txt_root, 'test')
 
     n=0

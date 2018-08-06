@@ -170,6 +170,9 @@ if __name__ == '__main__':
     train_loader = data_loader.DataLoader(root, batch_size=batch_size)
     train_loader.set_data_list(train_txt_root, train_test_type='train')
 
+    train_val_loader = data_loader.DataLoader(root, batch_size=batch_size)
+    train_val_loader.set_data_list(train_txt_root, train_test_type='train')
+
     test_loader = data_loader.DataLoader(root)
     test_loader.set_data_list(test_txt_root, train_test_type='test')
 
@@ -237,11 +240,14 @@ if __name__ == '__main__':
         train_acc, train_loss = train_1epoch(spatial_stream, train_loader, num_iter)
         print("train_loss:", train_loss, "train_acc:", train_acc)
 
+        tr_val_acc, tr_val_loss = validation_1epoch(spatial_stream, test_loader)
+        print("tr_val_loss:", tr_val_loss, "tr_val_acc:", tr_val_acc)
+
         val_acc, val_loss = validation_1epoch(spatial_stream, test_loader)
         print("val_loss:", val_loss, "val_acc:", val_acc)
 
-        write_log(tbCallBack, ["train_loss", "train_acc", 'validation_loss', 'validation_acc'],
-                  [train_loss, train_acc, val_loss, val_acc], epoch)
+        write_log(tbCallBack, ["train_loss", "train_acc", 'validation_loss', 'validation_acc', 'tr_val_loss', 'tr_val_acc'],
+                  [train_loss, train_acc, val_loss, val_acc, tr_val_loss, tr_val_acc], epoch)
 
         if epoch % 5 == 0:
             if epoch == 0:
