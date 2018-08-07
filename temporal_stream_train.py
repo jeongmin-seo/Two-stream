@@ -139,3 +139,7 @@ if __name__ == '__main__':
                   epoch)
 
         best_val_acc = save_best_model(epoch, val_acc, best_val_acc, temporal_stream, save_model_path)
+
+    #  A  A
+    # (‘ㅅ‘=)
+    # J.M.Seo

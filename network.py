@@ -155,3 +155,7 @@ class Temporal(Spatial):
     temporal_stream = Model(input=img_input, outputs=x)
     temporal_stream.summary()
     """
+
+#  A  A
+# (‘ㅅ‘=)
+# J.M.Seo

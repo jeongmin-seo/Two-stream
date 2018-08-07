@@ -175,3 +175,6 @@ if __name__ == '__main__':
     preprocess = MakePreprocessData(10,15)
     preprocess.run()
 
+#  A  A
+# (‘ㅅ‘=)
+# J.M.Seo

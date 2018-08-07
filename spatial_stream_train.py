@@ -33,6 +33,7 @@ tbCallBack = TensorBoard(log_dir='./Graph', histogram_freq=0, write_graph=True, 
 mcCallBack = ModelCheckpoint('./flow_result/{epoch:0}', monitor='val_loss',
                              verbose=1, save_best_only=True)
 
+
 if __name__ == '__main__':
 
     #####################################################
@@ -87,6 +88,7 @@ if __name__ == '__main__':
     tbCallBack.set_model(spatial_stream)
     mcCallBack.set_model(spatial_stream)
 
+    loss_session = tf.Session()
     best_val_acc = 0
     for epoch in range(start_epoch_num, start_epoch_num + num_epoch):
         print('Epoch', epoch)
@@ -94,10 +96,10 @@ if __name__ == '__main__':
         train_acc, train_loss = train_1epoch(spatial_stream, train_loader, num_iter)
         print("train_loss:", train_loss, "train_acc:", train_acc)
 
-        tr_val_acc, tr_val_loss = validation_1epoch(spatial_stream, train_val_loader)
+        tr_val_acc, tr_val_loss = validation_1epoch(spatial_stream, train_val_loader, sess)
         print("tr_val_loss:", tr_val_loss, "tr_val_acc:", tr_val_acc)
 
-        val_acc, val_loss = validation_1epoch(spatial_stream, test_loader)
+        val_acc, val_loss = validation_1epoch(spatial_stream, test_loader, sess)
         print("val_loss:", val_loss, "val_acc:", val_acc)
 
         write_log(tbCallBack,
@@ -107,3 +109,12 @@ if __name__ == '__main__':
 
         best_val_acc = save_best_model(epoch, val_acc, best_val_acc, spatial_stream, save_model_path)
 
+        loss_list = []
+        loss2_list = []
+        correct = 0
+        test_loader.set_test_video_list()
+
+
+#  A  A
+# (‘ㅅ‘=)
+# J.M.Seo

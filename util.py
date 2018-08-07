@@ -6,7 +6,6 @@ import tensorflow as tf
 import progressbar
 import os
 
-
 def video_level_acc(_y_pred, _y_true):
     accuracy = metrics.categorical_accuracy(_y_true, _y_pred)
     return K.mean(accuracy, axis=0)
@@ -17,8 +16,16 @@ def video_level_loss(_y_pred, _y_true):
     _y_pred = np.asarray(_y_pred, dtype=np.float64)
 
     return log_loss(_y_true, _y_pred)
+"""
+def video_level_loss(_y_pred, _y_true, _session):
 
+    _y_pred = tf.convert_to_tensor(_y_pred, dtype='float64')
+    _y_true = tf.convert_to_tensor(_y_true, dtype='float64')
 
+    loss = metrics.categorical_crossentropy(_y_true, _y_pred)
+
+    return loss
+"""
 def write_log(callback, names, logs, batch_no):
     for name, value in zip(names, logs):
         summary = tf.Summary()
@@ -29,8 +36,9 @@ def write_log(callback, names, logs, batch_no):
         callback.writer.flush()
 
 
-def validation_1epoch(_model, _loader):
+def validation_1epoch(_model, _loader, _session):
     loss_list = []
+    loss2_list = []
     correct = 0
     _loader.set_test_video_list()
 
@@ -38,9 +46,10 @@ def validation_1epoch(_model, _loader):
         _batch_x, _batch_y, eof = _loader.next_test_video()
         result = _model.predict_on_batch(_batch_x)
 
-        label = np.sum(_batch_y, axis=0)
-        predict = np.sum(result, axis=0)
-        loss_list.append(video_level_loss(result, _batch_y))
+        label = np.mean(_batch_y, axis=0)
+        predict = np.mean(result, axis=0)
+        loss_list.append(video_level_loss(predict, label))
+        # loss2_list.append(v_loss(predict, label, _session))
 
         if label.argmax() == predict.argmax():
             correct += 1

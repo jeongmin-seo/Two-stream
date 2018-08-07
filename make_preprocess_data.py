@@ -106,8 +106,10 @@ class MakePreprocessData():
             stacked_opt = np.dstack([stacked_opt, opt])
             resize_stacked_opt = np.dstack([resize_stacked_opt, resize_opt])
 
-        stacked_opt = normalize(stacked_opt)
-        resize_stacked_opt = normalize(resize_stacked_opt)
+        # stacked_opt = normalize(stacked_opt)
+        # resize_stacked_opt = normalize(resize_stacked_opt)
+        stacked_opt.astype(np.uint8)
+        resize_stacked_opt.astype(np.uint8)
 
         save_name = '%s-%05d' % (_action, int(_vnumber))
         resized_save_name = save_name + '-original.npy'
@@ -145,7 +147,7 @@ class MakePreprocessData():
         for _frame_name in os.listdir(_frame_path):
             img_name = _frame_path + '/' + _frame_name
             img = cv2.imread(img_name)
-            img = normalize(img) # for normalize
+            # img = normalize(img) # for normalize
 
             save_name = "%s-%05d" % (_action, int(_vnumber))
             save_name = os.path.join(spatial_save_path,  save_name)
@@ -153,6 +155,7 @@ class MakePreprocessData():
             # save original image after resize
             resized_img = cv2.resize(img, image_size)
             resized_save_path = save_name + '-original.npy'
+            resized_img.astype(np.uint8)
             np.save(resized_save_path, resized_img)
 
             if img.shape[0] < image_size[0] or img.shape[1] < image_size[1]:
@@ -168,6 +171,9 @@ class MakePreprocessData():
 
                 cropped_save_path = save_name + '-cropped-%d.npy' % i
                 flipped_save_path = save_name + '-flipped-%d.npy' % i
+
+                cropped_img.astype(np.uint8)
+                flipped_img.astype(np.uint8)
 
                 np.save(cropped_save_path, cropped_img)
                 np.save(flipped_save_path, flipped_img)
@@ -211,3 +217,6 @@ if __name__ == '__main__':
     preprocess.run()
 
 
+#  A  A
+# (‘ㅅ‘=)
+# J.M.Seo
