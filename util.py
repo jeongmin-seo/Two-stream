@@ -82,3 +82,6 @@ def save_best_model(_epoch, _val_acc, _best_val_acc, _model, _save_path):
         print("Save Best model to disk")
 
         return _val_acc
+
+    else:
+        return _best_val_acc
