@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     print('complete setting data list')
 
-    temporal = network.Temporal()
+    temporal = network.ActionNet(_mode='temporal', _L=5)
     #####################################################
     #     set convolution neural network structure      #
     #####################################################
@@ -140,6 +140,6 @@ if __name__ == '__main__':
 
         best_val_acc = save_best_model(epoch, val_acc, best_val_acc, temporal_stream, save_model_path)
 
-    #  A  A
-    # (‘ㅅ‘=)
-    # J.M.Seo
+#  A  A
+# (‘ㅅ‘=)
+# J.M.Seo
