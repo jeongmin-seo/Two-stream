@@ -28,7 +28,8 @@ parser.add_argument("--model_name", type=str, help="select model")
 # using pretrained model
 pretrained_model_name = '20_epoch_temporal_model.h5'
 using_pretrained_model = False
-save_model_path = '/home/mlpa/Workspace/github/Two-stream/flow_vgg16'
+project_path = "/home/mlpa/Workspace/github/Two-stream"
+# save_model_path = '/home/mlpa/Workspace/github/Two-stream/flow_vgg16'
 # num_epoch = 100
 # batch_size = 128
 
@@ -70,6 +71,9 @@ if __name__ == '__main__':
 
     print('complete setting data list')
 
+    save_path = os.path.join(project_path, arg.mode + "_" + arg.model_name)
+    os.mkdir(save_path)
+
     L=0
     if arg.mode == 'spatial':
         L = None
@@ -84,7 +88,7 @@ if __name__ == '__main__':
     #####################################################
     if using_pretrained_model:
         start_epoch_num = int(pretrained_model_name.split('_')[0]) + 1
-        load_model_path = os.path.join(save_model_path, pretrained_model_name)
+        load_model_path = os.path.join(save_path, pretrained_model_name)
         model = net.set_pretrained_model(load_model_path)
 
     else:
@@ -127,7 +131,7 @@ if __name__ == '__main__':
                   [train_loss, train_acc, val_loss, val_acc, tr_val_loss, tr_val_acc],
                   epoch)
 
-        best_val_acc = save_best_model(epoch, val_acc, best_val_acc, model, save_model_path)
+        best_val_acc = save_best_model(epoch, val_acc, best_val_acc, model, save_path)
 
         loss_list = []
         loss2_list = []
