@@ -13,10 +13,7 @@ class ActionNet:
         if _mode == 'spatial':
             self._input_shape = (224, 224, 3)
         elif _mode == 'temporal':
-            if not _L:
-                self._input_shape = (224, 224, _L*2)
-            else:
-                raise ValueError
+            self._input_shape = (224, 224, _L*2)
         else:
             raise ValueError
 
@@ -65,7 +62,7 @@ class ActionNet:
 
     def vgg16(self):
         from keras.applications.vgg16 import VGG16
-        vgg16 = VGG16(weights='imagenet', include_top=False, input_shape=self._input_shape)
+        vgg16 = VGG16(weights=None, include_top=False, input_shape=self._input_shape)
         #vgg16.layers.pop()
         for layer in vgg16.layers[:14]:
             layer.trainable = False

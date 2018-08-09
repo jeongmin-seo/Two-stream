@@ -28,7 +28,7 @@ parser.add_argument("--model_name", type=str, help="select model")
 # using pretrained model
 pretrained_model_name = '20_epoch_temporal_model.h5'
 using_pretrained_model = False
-save_model_path = '/home/jm/workspace/Two-stream/frame_model'
+save_model_path = '/home/mlpa/Workspace/github/Two-stream/flow_vgg16'
 # num_epoch = 100
 # batch_size = 128
 
@@ -55,9 +55,9 @@ if __name__ == '__main__':
     #     import requirement data using data loader     #
     #####################################################
     # HMDB-51 data loader
-    root = '/home/jm/Two-stream_data/HMDB51/preprocess/frames'
-    train_txt_root = '/home/jm/Two-stream_data/HMDB51/train_split1.txt'
-    test_txt_root = '/home/jm/Two-stream_data/HMDB51/test_split1.txt'
+    root = '/home/mlpa/ssd/HMDB51/preprocess/flow'
+    train_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/train_split1.txt'
+    test_txt_root = '/home/mlpa/ssd/HMDB51/preprocess/test_split1.txt'
 
     train_loader = data_loader.DataLoader(root, batch_size=arg.batch_size)
     train_loader.set_data_list(train_txt_root, train_test_type='train')
@@ -70,10 +70,13 @@ if __name__ == '__main__':
 
     print('complete setting data list')
 
+    L=0
     if arg.mode == 'spatial':
         L = None
-    else:
+    elif arg.mode == 'temporal':
         L = 5
+    else:
+        raise ValueError
 
     net = network.ActionNet(_mode=arg.mode, _L=L)
     #####################################################
